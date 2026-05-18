@@ -737,13 +737,41 @@ const PWD='tooltek2026';let adminOk=false;
 function checkPass(){const v=document.getElementById('adminPass').value,inp=document.getElementById('adminPass');if(v===PWD){adminOk=true;document.getElementById('adminModal').classList.add('hidden');inp.value='';document.getElementById('passErr').textContent='';openAdmin();}else{inp.classList.add('err');document.getElementById('passErr').textContent='Contraseña incorrecta.';setTimeout(()=>inp.classList.remove('err'),350);inp.value='';inp.focus();}}
 function cancelModal(){document.getElementById('adminModal').classList.add('hidden');document.getElementById('adminPass').value='';document.getElementById('passErr').textContent='';document.querySelectorAll('.nav-tab').forEach((t,i)=>t.classList.toggle('active',i===0));document.querySelectorAll('.view').forEach((v,i)=>v.classList.toggle('active',i===0));}
 function adminLogout(){adminOk=false;switchView('emp',{currentTarget:document.querySelectorAll('.nav-tab')[0]});showToast('Sesión cerrada');}
-function openAdmin(){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-adm').classList.add('active');renderAdmin();}
+function openAdmin(){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-adm').classList.add('active');
+  // Mostrar estado de carga
+  document.getElementById('tblBody').innerHTML='<div class="empty"><div class="spinner" style="width:22px;height:22px;margin:0 auto 8px"></div><p>Cargando solicitudes...</p></div>';
+  document.getElementById('tblWrap').style.display='block';
+  document.getElementById('statsGrid').style.display='none';
+  document.getElementById('resSection').style.display='none';
+  // Cargar desde Sheets y luego renderizar
+  cargarSolicitudesRemotas().then(()=>renderAdmin());
+}
 function switchView(v,e){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));e.currentTarget.classList.add('active');if(v==='adm'){if(!adminOk){document.getElementById('adminModal').classList.remove('hidden');setTimeout(()=>document.getElementById('adminPass').focus(),80);}else openAdmin();return;}document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));document.getElementById('view-'+v).classList.add('active');}
 
 // ══ STATE ══
 let solicitudes=[],choices={},curIdx=0,adminFilter='all',_tmp={tipo:null,ens:null,pos:null};
 function loadStor(){const s=localStorage.getItem('tt_v6');if(s)try{solicitudes=JSON.parse(s);}catch(e){}}
 function saveStor(){localStorage.setItem('tt_v6',JSON.stringify(solicitudes));}
+
+// ══ CARGAR SOLICITUDES DESDE SHEETS (JSONP) ══
+async function cargarSolicitudesRemotas() {
+  if (WEBHOOK_URL === 'TU_URL_APPS_SCRIPT') { loadStor(); return; }
+  try {
+    const data = await fetchJSONP(WEBHOOK_URL + '?action=obtener_solicitudes');
+    if (data.ok && Array.isArray(data.solicitudes)) {
+      solicitudes = data.solicitudes;
+      // Sincronizar también en localStorage como caché
+      saveStor();
+    } else {
+      loadStor();
+    }
+  } catch(err) {
+    console.warn('Error cargando solicitudes:', err);
+    loadStor(); // fallback a localStorage
+  }
+}
 
 // ══ STEP 1 ══
 function checkStart(){const n=document.getElementById('empNombre').value.trim();const e=document.getElementById('empEmail').value.trim();const a=document.getElementById('empArea').value;document.getElementById('btnStart').disabled=!(n&&e&&a&&menuLoaded);}
@@ -833,14 +861,75 @@ function loadExcel(e){const f=e.target.files[0];if(!f)return;const r=new FileRea
 function dropFile(e){e.preventDefault();document.getElementById('upZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(!f)return;const fake={target:{files:[f]}};loadExcel(fake);}
 
 // ══ ADMIN ══
-function renderAdmin(){loadStor();renderStats();renderTable();renderResumen();}
-function renderStats(){const el=document.getElementById('statsGrid');if(!solicitudes.length){el.style.display='none';return;}el.style.display='grid';document.getElementById('sPer').textContent=solicitudes.length;let tot=0,a=0,b=0,h=0,v=0,l=0,aus=0;solicitudes.forEach(p=>p.dias.forEach(d=>{if(d.ausente)aus++;else{tot++;if(d.tipo==='A')a++;else if(d.tipo==='B')b++;else if(d.tipo==='H')h++;else if(d.tipo==='V')v++;else if(d.tipo==='L')l++;}}));document.getElementById('sTot').textContent=tot;document.getElementById('sA').textContent=a;document.getElementById('sB').textContent=b;document.getElementById('sH').textContent=h;document.getElementById('sV').textContent=v;document.getElementById('sL').textContent=l;document.getElementById('sAus').textContent=aus;}
-function renderTable(){const tw=document.getElementById('tblWrap'),tb=document.getElementById('tblBody'),fr=document.getElementById('fltRow');if(!solicitudes.length){tw.style.display='none';return;}tw.style.display='block';const areas=[...new Set(solicitudes.map(p=>p.area))];fr.innerHTML='<button class="flt'+(adminFilter==='all'?' on':'')+'" onclick="setFlt(\'all\')">Todos</button>'+areas.map(a=>`<button class="flt${adminFilter===a?' on':''}" onclick="setFlt('${a}')">${a}</button>`).join('');const fil=adminFilter==='all'?solicitudes:solicitudes.filter(p=>p.area===adminFilter);if(!fil.length){tb.innerHTML='<div class="empty"><div class="bi">📭</div><p>Sin resultados</p></div>';return;}tb.innerHTML=`<table><thead><tr><th>Nombre</th><th>Email</th><th>Área</th><th>Fecha</th><th>Días</th><th>Aus.</th></tr></thead><tbody>${fil.map(p=>{const sel=p.dias.filter(d=>!d.ausente).length;const aus=p.dias.filter(d=>d.ausente).length;return`<tr><td>${p.nombre}</td><td style="font-size:.74rem;color:var(--mut)">${p.email}</td><td>${p.area}</td><td style="font-size:.74rem;color:var(--mut)">${p.fecha_reg}</td><td><span class="pill-c">${sel}</span></td><td><span class="pill-c" style="background:rgba(217,64,64,.08);color:var(--red);border-color:rgba(217,64,64,.2)">${aus}</span></td></tr>`;}).join('')}</tbody></table>`;}
-function setFlt(f){adminFilter=f;renderTable();}
-function renderResumen(){const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');if(!solicitudes.length||!DATES.length){rs.style.display='none';return;}rs.style.display='block';const byDay={};DATES.forEach(dk=>{byDay[dk]={A:[],B:[],H:[],V:[],L:[],AUS:[]};});solicitudes.forEach(p=>p.dias.forEach(d=>{if(byDay[d.fecha]){if(d.ausente)byDay[d.fecha].AUS.push(p.nombre);else if(byDay[d.fecha][d.tipo])byDay[d.fecha][d.tipo].push(p.nombre);}}));rg.innerHTML=DATES.map(dk=>{const d=MENU[dk],b=byDay[dk];const filas=[['A','Plato A',d.A],['B','Plato B',d.B],['H','Hipocalórico',d.H],['V','Vegetariano',d.V],['L','Liviano',d.L||'']].filter(([t,,p])=>p&&b[t].length);const total=filas.reduce((s,[t])=>s+b[t].length,0);if(!total&&!b.AUS.length)return'';return`<div class="rc2"><div class="rc2-main"><table><thead><tr><th>${d.label} — ${d.full}</th><th colspan="2" class="col-pedido">Pedidos</th></tr></thead><tbody>${filas.map(([t,lbl,plato])=>`<tr class="${t==='H'?'row-hipo':''}"><td class="col-tipo">${lbl}</td><td class="col-plato">${plato}</td><td class="col-num">${b[t].length}</td></tr>`).join('')}${b.AUS.length?`<tr class="row-sep"><td colspan="3"></td></tr><tr class="row-aus"><td class="col-tipo">Ausencia</td><td class="col-plato">—</td><td class="col-num">${b.AUS.length}</td></tr>`:''}</tbody></table></div><div class="rc2-totales"><table><tbody><tr><td class="col-tipo"></td><td class="col-plato">Total colaciones</td><td class="col-num">${total}</td></tr></tbody></table></div></div>`;}).join('');}
+function renderAdmin(){renderStats();renderTable();renderResumen();}
 
-function exportExcel(){if(!solicitudes.length){showToast('Sin datos para exportar');return;}const ws=XLSX.utils.json_to_sheet(solicitudes.flatMap(p=>p.dias.map(d=>({'Nombre':p.nombre,'Email':p.email,'Área':p.area,'Mes':p.mes,'Fecha Reg.':p.fecha_reg,'Fecha':d.fechaLabel,'Tipo':TL[d.tipo]||d.tipo,'Plato':d.fondo,'Ensalada':d.ens,'Postre':d.pos,'Ausente':d.ausente?'Sí':'No'}))));const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,'Solicitudes');XLSX.writeFile(wb2,'Colaciones_'+menuMes.replace(/ /g,'_')+'.xlsx');showToast('✅ Excel exportado');}
-function clearAll(){if(!confirm('¿Eliminar todas las solicitudes?'))return;solicitudes=[];saveStor();renderAdmin();showToast('Datos eliminados');}
+function renderStats(){
+  const el=document.getElementById('statsGrid');
+  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  if(!solMes.length){el.style.display='none';return;}
+  el.style.display='grid';
+  document.getElementById('sPer').textContent=solMes.length;
+  let tot=0,a=0,b=0,h=0,v=0,l=0,aus=0;
+  solMes.forEach(p=>p.dias.forEach(d=>{if(d.ausente)aus++;else{tot++;if(d.tipo==='A')a++;else if(d.tipo==='B')b++;else if(d.tipo==='H')h++;else if(d.tipo==='V')v++;else if(d.tipo==='L')l++;}}));
+  document.getElementById('sTot').textContent=tot;document.getElementById('sA').textContent=a;
+  document.getElementById('sB').textContent=b;document.getElementById('sH').textContent=h;
+  document.getElementById('sV').textContent=v;document.getElementById('sL').textContent=l;
+  document.getElementById('sAus').textContent=aus;
+}
+
+function renderTable(){
+  const tw=document.getElementById('tblWrap'),tb=document.getElementById('tblBody'),fr=document.getElementById('fltRow');
+  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  if(!solMes.length){tw.style.display='none';return;}
+  tw.style.display='block';
+  const areas=[...new Set(solMes.map(p=>p.area))];
+  fr.innerHTML='<button class="flt'+(adminFilter==='all'?' on':'')+'" onclick="setFlt(\'all\')">Todos ('+solMes.length+')</button>'+areas.map(a=>`<button class="flt${adminFilter===a?' on':''}" onclick="setFlt('${a}')">${a}</button>`).join('');
+  const fil=adminFilter==='all'?solMes:solMes.filter(p=>p.area===adminFilter);
+  if(!fil.length){tb.innerHTML='<div class="empty"><div class="bi">📭</div><p>Sin resultados</p></div>';return;}
+  tb.innerHTML=`<table><thead><tr><th>Nombre</th><th>Email</th><th>Área</th><th>Fecha</th><th>Días</th><th>Aus.</th></tr></thead><tbody>${fil.map(p=>{const sel=p.dias.filter(d=>!d.ausente).length;const aus=p.dias.filter(d=>d.ausente).length;return`<tr><td>${p.nombre}</td><td style="font-size:.74rem;color:var(--mut)">${p.email}</td><td>${p.area}</td><td style="font-size:.74rem;color:var(--mut)">${p.fecha_reg}</td><td><span class="pill-c">${sel}</span></td><td><span class="pill-c" style="background:rgba(217,64,64,.08);color:var(--red);border-color:rgba(217,64,64,.2)">${aus}</span></td></tr>`;}).join('')}</tbody></table>`;
+}
+function setFlt(f){adminFilter=f;renderTable();}
+
+function clearAll(){
+  if(!confirm('¿Eliminar TODAS las solicitudes de '+menuMes+'? Esta acción no se puede deshacer.'))return;
+  if(WEBHOOK_URL!=='TU_URL_APPS_SCRIPT'){
+    fetch(WEBHOOK_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'clear_solicitudes',mes:menuMes})});
+  }
+  solicitudes=solicitudes.filter(s=>s.mes!==menuMes);
+  saveStor();renderAdmin();showToast('Solicitudes de '+menuMes+' eliminadas');
+}
+
+function renderResumen(){
+  const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
+  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  if(!solMes.length||!DATES.length){rs.style.display='none';return;}
+  rs.style.display='block';
+  const byDay={};
+  DATES.forEach(dk=>{byDay[dk]={A:[],B:[],H:[],V:[],L:[],AUS:[]};});
+  solMes.forEach(p=>p.dias.forEach(d=>{
+    if(byDay[d.fecha]){
+      if(d.ausente)byDay[d.fecha].AUS.push(p.nombre);
+      else if(byDay[d.fecha][d.tipo])byDay[d.fecha][d.tipo].push(p.nombre);
+    }
+  }));
+  rg.innerHTML=DATES.map(dk=>{
+    const d=MENU[dk],b=byDay[dk];
+    const filas=[['A','Plato A',d.A],['B','Plato B',d.B],['H','Hipocalórico',d.H],['V','Vegetariano',d.V],['L','Liviano',d.L||'']].filter(([t,,p])=>p&&b[t].length);
+    const total=filas.reduce((s,[t])=>s+b[t].length,0);
+    if(!total&&!b.AUS.length)return'';
+    return`<div class="rc2"><div class="rc2-main"><table><thead><tr><th>${d.label} — ${d.full}</th><th colspan="2" class="col-pedido">Pedidos</th></tr></thead><tbody>${filas.map(([t,lbl,plato])=>`<tr class="${t==='H'?'row-hipo':''}"><td class="col-tipo">${lbl}</td><td class="col-plato">${plato}</td><td class="col-num">${b[t].length}</td></tr>`).join('')}${b.AUS.length?`<tr class="row-sep"><td colspan="3"></td></tr><tr class="row-aus"><td class="col-tipo">Ausencia</td><td class="col-plato">—</td><td class="col-num">${b.AUS.length}</td></tr>`:''}</tbody></table></div><div class="rc2-totales"><table><tbody><tr><td class="col-tipo"></td><td class="col-plato">Total colaciones</td><td class="col-num">${total}</td></tr></tbody></table></div></div>`;
+  }).join('');
+}
+
+function exportExcel(){
+  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  if(!solMes.length){showToast('Sin datos para exportar');return;}
+  const ws=XLSX.utils.json_to_sheet(solMes.flatMap(p=>p.dias.map(d=>({'Nombre':p.nombre,'Email':p.email,'Área':p.area,'Mes':p.mes,'Fecha Reg.':p.fecha_reg,'Fecha':d.fechaLabel,'Tipo':TL[d.tipo]||d.tipo,'Plato':d.fondo,'Ensalada':d.ens,'Postre':d.pos,'Ausente':d.ausente?'Sí':'No'}))));
+  const wb2=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2,ws,'Solicitudes');
+  XLSX.writeFile(wb2,'Colaciones_'+menuMes.replace(/ /g,'_')+'.xlsx');
+  showToast('✅ Excel exportado');
+}
 
 function nuevaSolicitud(){choices={};showStep('step-datos');document.getElementById('empNombre').value='';document.getElementById('empEmail').value='';document.getElementById('empArea').value='';checkStart();}
 function showStep(id){document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
