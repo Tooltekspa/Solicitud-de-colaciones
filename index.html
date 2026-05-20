@@ -677,16 +677,81 @@ function parseMenuExcel(wb){
       const isVeg=rc1.includes('VEGETARIANO')&&!isHipo;
       const isLiv=rc1.includes('LIVIANO')&&!isHipo&&!isVeg;
       const isPost=rc1.includes('POSTRE');
+      // ── FIX 1: detectar feriado en rc1 directamente ──
+      const isFeriado=rc1.includes('FERIADO')||rc0.includes('FERIADO');
       const rc1n=normT(rc1);
       const isPlatA=rc1.includes('ACOMP')&&(rc1n.endsWith(' A')||rc1n.endsWith('MIENTO A'))&&!isHipo&&!isVeg&&!isLiv;
       const isPlatB=rc1.includes('ACOMP')&&(rc1n.endsWith(' B')||rc1n.endsWith('MIENTO B'))&&!isHipo&&!isVeg&&!isLiv;
       const isEns=rc1==='ENSALADAS'&&!isHipo&&!isVeg;
       const tipoCol2=(!isPlatA&&!isPlatB&&!isHipo&&!isVeg&&!isLiv&&TIPOS.includes(rc2))?rc2:null;
-      if(isEns){pendingType=null;for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk])newMenu[dk].ens.push(stripEns(clean(v)));}}
-      else if(isPlatA||isPlatB||isHipo||isVeg||isLiv){pendingType=isPlatA?'A':isPlatB?'B':isHipo?'H':isVeg?'V':'L';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!newMenu[dk])continue;if(!v)continue;let val=clean(v).replace(/con ensaladas/i,'').trim();if(val.toLowerCase()==='feriado'){newMenu[dk].feriado=true;continue;}newMenu[dk][pendingType]=val;}}
+      if(isFeriado){
+        // Marcar todos los días de esta semana como feriado si la celda dice FERIADO
+        for(const {col,dk} of wds){
+          const v=col<r.length?r[col]:null;
+          const vStr=v?String(v).trim().toUpperCase():'';
+          // Si la celda del día dice FERIADO, o la etiqueta dice FERIADO, marcar ese día
+          if(vStr==='FERIADO'||isFeriado){if(newMenu[dk])newMenu[dk].feriado=true;}
+        }
+        pendingType=null;
+      }
+      else if(isEns){pendingType='ENS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk])newMenu[dk].ens.push(stripEns(clean(v)));}}
+      else if(isPlatA||isPlatB||isHipo||isVeg||isLiv){
+        pendingType=isPlatA?'A':isPlatB?'B':isHipo?'H':isVeg?'V':'L';
+        for(const {col,dk} of wds){
+          const v=col<r.length?r[col]:null;
+          if(!newMenu[dk])continue;if(!v)continue;
+          let val=clean(v).replace(/con ensaladas/i,'').trim();
+          // ── FIX 1b: detectar FERIADO dentro de la celda del plato ──
+          if(val.toUpperCase()==='FERIADO'){newMenu[dk].feriado=true;continue;}
+          newMenu[dk][pendingType]=val;
+        }
+      }
       else if(tipoCol2){pendingType=null;for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!newMenu[dk])continue;if(!v)continue;let val=clean(v).replace(/con ensaladas/i,'').trim();newMenu[dk][tipoCol2]=val;}}
-      else if(isPost){pendingType=null;for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk])newMenu[dk].pos.push(clean(v));}}
-      else if(!rc0&&!rc1){const hasVals=wds.some(({col})=>col<r.length&&r[col]&&String(r[col]).trim().length>1);if(hasVals&&pendingType){for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!v||!newMenu[dk])continue;const acomp=clean(v).replace(/con ensaladas/i,'').trim();if(acomp&&newMenu[dk][pendingType]&&!['H','L'].includes(pendingType))newMenu[dk][pendingType]+=' / '+acomp;}pendingType=null;}else if(hasVals){const fdk=wds[0]?.dk;const ensOk=(newMenu[fdk]?.ens?.length||0)>=3;for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!v||!newMenu[dk])continue;const val=stripEns(clean(v));if(!val)continue;if(!ensOk)newMenu[dk].ens.push(val);else newMenu[dk].pos.push(val);}}}
+      else if(isPost){pendingType='POS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk])newMenu[dk].pos.push(clean(v));}}
+      else if(!rc0&&!rc1){
+        const hasVals=wds.some(({col})=>col<r.length&&r[col]&&String(r[col]).trim().length>1);
+        if(hasVals&&pendingType&&pendingType!=='ENS'&&pendingType!=='POS'){
+          // Continuación de acompañamiento
+          for(const {col,dk} of wds){
+            const v=col<r.length?r[col]:null;
+            if(!v||!newMenu[dk])continue;
+            const acomp=clean(v).replace(/con ensaladas/i,'').trim();
+            if(acomp&&newMenu[dk][pendingType]&&!['H','L'].includes(pendingType))
+              newMenu[dk][pendingType]+=' / '+acomp;
+          }
+          pendingType=null;
+        } else if(hasVals&&pendingType==='ENS'){
+          // ── FIX 2: si pendingType es ENS, seguir agregando ensaladas ──
+          for(const {col,dk} of wds){
+            const v=col<r.length?r[col]:null;
+            if(!v||!newMenu[dk])continue;
+            newMenu[dk].ens.push(stripEns(clean(v)));
+          }
+        } else if(hasVals&&pendingType==='POS'){
+          // Si pendingType es POS, seguir agregando postres
+          for(const {col,dk} of wds){
+            const v=col<r.length?r[col]:null;
+            if(!v||!newMenu[dk])continue;
+            newMenu[dk].pos.push(clean(v));
+          }
+        } else if(hasVals){
+          // Sin pendingType: usar heurística mejorada
+          // Si ya tenemos ensaladas suficientes (>=2) Y ya hay postres => agregar postre
+          // Si no tenemos postres aún => es postre solo si parece postre (FLAN, JALEA, FRUTA, BRAZO, TORTA, QUEQUE, etc.)
+          const POSTRES_KW=['FLAN','JALEA','FRUTA','BRAZO','TORTA','QUEQUE','MOUSSE','POSTRE','COMPOTA','HELADO','ARROZ CON LECHE','GELATINA','PREELAB'];
+          for(const {col,dk} of wds){
+            const v=col<r.length?r[col]:null;
+            if(!v||!newMenu[dk])continue;
+            const val=stripEns(clean(v));
+            if(!val)continue;
+            const valUp=val.toUpperCase();
+            const isPostreByKw=POSTRES_KW.some(kw=>valUp.includes(kw));
+            const ensYaSuf=(newMenu[dk].ens?.length||0)>=2;
+            if(isPostreByKw||ensYaSuf) newMenu[dk].pos.push(val);
+            else newMenu[dk].ens.push(val);
+          }
+        }
+      }
       else{pendingType=null;}
       i++;
     }
