@@ -652,6 +652,28 @@ function parseMenuExcel(wb){
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
   const targetMM=picked.mon?MONTH_NAMES.indexOf(picked.mon):0;
   const newMenu={};
+  // Pre-scan: detectar filas sueltas con 'FERIADO' y buscar la fecha en la misma columna
+  const feriadosDates=new Set();
+  for(let fi=0;fi<rows.length;fi++){
+    const fr=rows[fi];
+    if(!fr)continue;
+    fr.forEach((v,ci)=>{
+      if(!v||String(v).trim().toUpperCase()!=='FERIADO')return;
+      // Buscar la fecha más cercana en la misma columna, primero hacia adelante luego atrás
+      for(let d=1;d<=8;d++){
+        const nr=rows[fi+d];if(!nr)continue;
+        const nv=nr[ci]?String(nr[ci]).trim():'';
+        const dk2=parseDK(nv);
+        if(dk2){feriadosDates.add(dk2);return;}
+      }
+      for(let d=1;d<=8;d++){
+        const nr=rows[fi-d];if(!nr)continue;
+        const nv=nr[ci]?String(nr[ci]).trim():'';
+        const dk2=parseDK(nv);
+        if(dk2){feriadosDates.add(dk2);return;}
+      }
+    });
+  }
   let i=0;
   while(i<rows.length){
     const row=rows[i];
@@ -661,7 +683,16 @@ function parseMenuExcel(wb){
     const semLabel=String(row[0]).trim();
     const dayCols=findDateColsArr(row);
     const wds=[];
-    for(const col of dayCols){const dk=parseDK(row[col]);if(!dk)continue;if(targetMM&&parseInt(dk.split('/')[1],10)!==targetMM)continue;wds.push({col,dk});newMenu[dk]={label:parseDow(String(row[col]))+' '+dk.split('/')[0],full:String(row[col]).replace(/\s*-\s*/,' ').trim(),semana:semLabel,ens:[],A:'',B:'',H:'',V:'',L:'',pos:[],feriado:false};}
+    for(const col of dayCols){
+      const dk=parseDK(row[col]);
+      if(!dk)continue;
+      if(targetMM&&parseInt(dk.split('/')[1],10)!==targetMM)continue;
+      // Verificar si el día tiene datos en las filas de platos (cols col de filas siguientes)
+      // Un día es feriado si su columna está vacía en todas las filas de plato de la semana
+      const esFeriado=feriadosDates.has(dk);
+      wds.push({col,dk});
+      newMenu[dk]={label:parseDow(String(row[col]))+' '+dk.split('/')[0],full:String(row[col]).replace(/\s*-\s*/,' ').trim(),semana:semLabel,ens:[],A:'',B:'',H:'',V:'',L:'',pos:[],feriado:esFeriado};
+    }
     i++;
     if(!wds.length)continue;
     let pendingType=null;
@@ -685,12 +716,13 @@ function parseMenuExcel(wb){
       const isEns=rc1==='ENSALADAS'&&!isHipo&&!isVeg;
       const tipoCol2=(!isPlatA&&!isPlatB&&!isHipo&&!isVeg&&!isLiv&&TIPOS.includes(rc2))?rc2:null;
       if(isFeriado){
-        // Marcar todos los días de esta semana como feriado si la celda dice FERIADO
         for(const {col,dk} of wds){
           const v=col<r.length?r[col]:null;
           const vStr=v?String(v).trim().toUpperCase():'';
-          // Si la celda del día dice FERIADO, o la etiqueta dice FERIADO, marcar ese día
-          if(vStr==='FERIADO'||isFeriado){if(newMenu[dk])newMenu[dk].feriado=true;}
+          // Solo marcar feriado si la celda específica del día dice FERIADO
+          // o si rc0/rc1 dice FERIADO y no hay valor en ninguna columna de datos
+          if(vStr==='FERIADO'){if(newMenu[dk])newMenu[dk].feriado=true;}
+          else if(!vStr&&(rc0==='FERIADO'||rc1==='FERIADO')){if(newMenu[dk])newMenu[dk].feriado=true;}
         }
         pendingType=null;
       }
@@ -755,7 +787,11 @@ function parseMenuExcel(wb){
       else{pendingType=null;}
       i++;
     }
-    for(const {dk} of wds){if(newMenu[dk]&&!newMenu[dk].A&&!newMenu[dk].feriado)newMenu[dk].feriado=true;}
+    for(const {dk} of wds){
+      if(newMenu[dk]&&!newMenu[dk].A&&!newMenu[dk].feriado)newMenu[dk].feriado=true;
+      // También aplicar feriados del pre-scan
+      if(newMenu[dk]&&feriadosDates.has(dk))newMenu[dk].feriado=true;
+    }
   }
   return{menu:newMenu,mes:(picked.mon+(picked.yr?' '+picked.yr:''))};
 }
