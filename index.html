@@ -536,14 +536,20 @@ const TB={A:'bA',B:'bB',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 // ══ Google Sheets Visualization API — funciona cross-origin sin CORS ══
 const SHEET_ID = '1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98';
 
-// ══ Leer desde Apps Script via HtmlService (tiene CORS correcto) ══
+// ══ Leer desde Apps Script ══
 async function gasGet(action) {
-  // HtmlService devuelve desde script.googleusercontent.com con CORS permisivo
   const url = WEBHOOK_URL + '?action=' + action + '&t=' + Date.now();
-  const res = await fetch(url, { redirect: 'follow' });
+  // Apps Script redirige a script.googleusercontent.com que tiene CORS abierto
+  const res = await fetch(url, {
+    method: 'GET',
+    redirect: 'follow',
+    mode: 'cors',
+    credentials: 'omit'
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
   const text = await res.text();
-  // HtmlService devuelve el JSON como contenido HTML — extraerlo
-  const clean = text.replace(/<[^>]*>/g, '').trim();
+  // Puede venir como JSON directo o como HTML (HtmlService)
+  const clean = text.replace(/<[^>]*>/g,'').trim();
   return JSON.parse(clean);
 }
 
@@ -788,6 +794,73 @@ function exportExcel(){
 function nuevaSolicitud(){choices={};showStep('step-datos');document.getElementById('empNombre').value='';document.getElementById('empEmail').value='';document.getElementById('empArea').value='';checkStart();}
 function showStep(id){document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 function showToast(msg,dur=3000){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+
+// ══ STORAGE ══
+function loadStor(){
+  const s=localStorage.getItem('tt_v6');
+  if(s)try{solicitudes=JSON.parse(s);}catch(e){}
+  const m=localStorage.getItem('tt_menu');
+  if(m)try{
+    const md=JSON.parse(m);
+    if(md.menu&&md.dates&&md.mes){
+      MENU=md.menu;DATES=md.dates;menuMes=md.mes;
+      const label=menuMes;
+      document.getElementById('datePill').textContent='Colaciones '+label;
+      document.getElementById('resumenPill').textContent='Resumen · '+label;
+      document.getElementById('adminMonthPill').textContent=label;
+    }
+  }catch(e){}
+}
+function saveStor(){localStorage.setItem('tt_v6',JSON.stringify(solicitudes));}
+function saveMenuLocal(){localStorage.setItem('tt_menu',JSON.stringify({menu:MENU,dates:DATES,mes:menuMes}));}
+
+function setMenuBanner(type,msg){
+  const b=document.getElementById('menuBanner');
+  const t=document.getElementById('menuBannerTxt');
+  if(!b||!t)return;
+  b.className='menu-loading-banner '+(type||'');
+  t.textContent=msg;
+}
+
+function applyMenu(parsed,fileName){
+  const validDates=Object.keys(parsed.menu).filter(dk=>{const d=parsed.menu[dk];return !d.feriado&&d.A&&d.B;}).sort();
+  if(validDates.length===0){showToast('⚠️ No se encontraron días hábiles en el archivo');return false;}
+  MENU=parsed.menu;DATES=validDates;
+  menuMes=parsed.mes||fileName.replace(/[_\-]/g,' ').replace(/\.xlsx?/i,'');
+  const label=menuMes||'Menú cargado';
+  document.getElementById('datePill').textContent='Colaciones '+label;
+  document.getElementById('resumenPill').textContent='Resumen · '+label;
+  document.getElementById('adminMonthPill').textContent=label;
+  return true;
+}
+
+function renderMenuPreview(){
+  const el=document.getElementById('menuPreview');
+  if(!el)return;
+  const semanas={};
+  for(const dk of DATES){const d=MENU[dk];if(!semanas[d.semana])semanas[d.semana]=[];semanas[d.semana].push(dk);}
+  let html=`<div class="menu-preview"><div class="mp-header"><h3>📋 Vista previa — ${menuMes}</h3><span>${DATES.length} días hábiles</span></div><div class="mp-body">`;
+  for(const [sem,dks] of Object.entries(semanas)){
+    html+=`<div class="mp-week"><div class="mp-week-title">${sem}</div><div class="mp-days">`;
+    for(const dk of dks){const d=MENU[dk];html+=`<div class="mp-day"><div class="mp-day-label">${d.label}</div><div class="mp-row"><strong>A:</strong> ${d.A.substring(0,38)}${d.A.length>38?'…':''}</div><div class="mp-row"><strong>B:</strong> ${d.B.substring(0,38)}${d.B.length>38?'…':''}</div><div class="mp-row"><strong>H:</strong> ${d.H.substring(0,36)}${d.H.length>36?'…':''}</div><div class="mp-row"><strong>V:</strong> ${d.V.substring(0,36)}${d.V.length>36?'…':''}</div></div>`;}
+    html+=`</div></div>`;
+  }
+  html+=`</div></div>`;
+  el.innerHTML=html;el.style.display='block';
+}
+
+async function guardarMenuRemoto(){
+  if(WEBHOOK_URL==='TU_URL_APPS_SCRIPT'){showToast('⚠️ Configura WEBHOOK_URL');return false;}
+  setSyncStatus('syncing','☁️ Publicando menú...');
+  try{
+    await fetch(WEBHOOK_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'guardar_menu',menu:MENU,dates:DATES,mes:menuMes,updatedBy:'Admin'})});
+    setSyncStatus('ok','✅ Menú publicado');
+    return true;
+  }catch(err){
+    setSyncStatus('err','❌ Error al publicar');
+    return false;
+  }
+}
 
 // ══ INIT ══
 loadStor();
