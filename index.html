@@ -726,56 +726,52 @@ function parseMenuExcel(wb){
         }
         pendingType=null;
       }
-      else if(isEns){pendingType='ENS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk])newMenu[dk].ens.push(stripEns(clean(v)));}}
+      else if(isEns){pendingType='ENS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk]&&String(v).trim().toUpperCase()!=='FERIADO')newMenu[dk].ens.push(stripEns(clean(v)));}}
       else if(isPlatA||isPlatB||isHipo||isVeg||isLiv){
         pendingType=isPlatA?'A':isPlatB?'B':isHipo?'H':isVeg?'V':'L';
         for(const {col,dk} of wds){
           const v=col<r.length?r[col]:null;
           if(!newMenu[dk])continue;if(!v)continue;
           let val=clean(v).replace(/con ensaladas/i,'').trim();
-          // ── FIX 1b: detectar FERIADO dentro de la celda del plato ──
           if(val.toUpperCase()==='FERIADO'){newMenu[dk].feriado=true;continue;}
           newMenu[dk][pendingType]=val;
         }
       }
-      else if(tipoCol2){pendingType=null;for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!newMenu[dk])continue;if(!v)continue;let val=clean(v).replace(/con ensaladas/i,'').trim();newMenu[dk][tipoCol2]=val;}}
-      else if(isPost){pendingType='POS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk])newMenu[dk].pos.push(clean(v));}}
+      else if(tipoCol2){pendingType=null;for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!newMenu[dk])continue;if(!v)continue;let val=clean(v).replace(/con ensaladas/i,'').trim();if(val.toUpperCase()==='FERIADO')continue;newMenu[dk][tipoCol2]=val;}}
+      else if(isPost){pendingType='POS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk]&&String(v).trim().toUpperCase()!=='FERIADO')newMenu[dk].pos.push(clean(v));}}
       else if(!rc0&&!rc1){
-        const hasVals=wds.some(({col})=>col<r.length&&r[col]&&String(r[col]).trim().length>1);
+        const hasVals=wds.some(({col})=>col<r.length&&r[col]&&String(r[col]).trim().length>1&&String(r[col]).trim().toUpperCase()!=='FERIADO');
         if(hasVals&&pendingType&&pendingType!=='ENS'&&pendingType!=='POS'){
-          // Continuación de acompañamiento
           for(const {col,dk} of wds){
             const v=col<r.length?r[col]:null;
             if(!v||!newMenu[dk])continue;
             const acomp=clean(v).replace(/con ensaladas/i,'').trim();
+            if(!acomp||acomp.toUpperCase()==='FERIADO')continue;
             if(acomp&&newMenu[dk][pendingType]&&!['H','L'].includes(pendingType))
               newMenu[dk][pendingType]+=' / '+acomp;
           }
           pendingType=null;
         } else if(hasVals&&pendingType==='ENS'){
-          // ── FIX 2: si pendingType es ENS, seguir agregando ensaladas ──
           for(const {col,dk} of wds){
             const v=col<r.length?r[col]:null;
             if(!v||!newMenu[dk])continue;
+            if(String(v).trim().toUpperCase()==='FERIADO')continue;
             newMenu[dk].ens.push(stripEns(clean(v)));
           }
         } else if(hasVals&&pendingType==='POS'){
-          // Si pendingType es POS, seguir agregando postres
           for(const {col,dk} of wds){
             const v=col<r.length?r[col]:null;
             if(!v||!newMenu[dk])continue;
+            if(String(v).trim().toUpperCase()==='FERIADO')continue;
             newMenu[dk].pos.push(clean(v));
           }
         } else if(hasVals){
-          // Sin pendingType: usar heurística mejorada
-          // Si ya tenemos ensaladas suficientes (>=2) Y ya hay postres => agregar postre
-          // Si no tenemos postres aún => es postre solo si parece postre (FLAN, JALEA, FRUTA, BRAZO, TORTA, QUEQUE, etc.)
           const POSTRES_KW=['FLAN','JALEA','FRUTA','BRAZO','TORTA','QUEQUE','MOUSSE','POSTRE','COMPOTA','HELADO','ARROZ CON LECHE','GELATINA','PREELAB'];
           for(const {col,dk} of wds){
             const v=col<r.length?r[col]:null;
             if(!v||!newMenu[dk])continue;
             const val=stripEns(clean(v));
-            if(!val)continue;
+            if(!val||val.toUpperCase()==='FERIADO')continue;
             const valUp=val.toUpperCase();
             const isPostreByKw=POSTRES_KW.some(kw=>valUp.includes(kw));
             const ensYaSuf=(newMenu[dk].ens?.length||0)>=2;
