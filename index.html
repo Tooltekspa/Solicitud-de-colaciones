@@ -463,11 +463,13 @@ onkeydown="if(event.key==='Enter')checkPass()">
 </div>
 <div class="admin-acts">
 <button class="abtn ao" onclick="document.getElementById('fileInput').click()">📂 Cargar Minuta Excel</button>
-<button class="abtn ap" onclick="exportExcel()">⬇ Exportar Excel</button>
+<button class="abtn as" onclick="document.getElementById('menuJsonInput').click()">📋 Cargar menu.json</button>
+<button class="abtn ap" onclick="exportExcel()">⬇ Exportar Solicitudes</button>
 <button class="abtn ad" onclick="clearAll()">🗑 Limpiar datos</button>
 <button class="abtn ag" onclick="adminLogout()">🔒 Cerrar sesión</button>
 <span id="syncStatus" class="sync-status" style="display:none"></span>
 <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="loadExcel(event)">
+<input type="file" id="menuJsonInput" accept=".json" onchange="loadMenuJson(event)" style="display:none">
 </div>
 </div>
 
@@ -517,7 +519,7 @@ ondrop="dropFile(event)">
 //  ⚙️  CONFIGURACIÓN — EDITA SOLO ESTAS DOS LÍNEAS
 // ══════════════════════════════════════════════════════════════
 const WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbw3l0p4W_IWLLh-ufacUoahMTwogGTfNNJ6iEVBhFb00xHIRfSzBPctUmZxt0GAvLJK/exec';
-const ADMIN_EMAIL  = 'diego.cabrera@tooltek.cl';       // ← Correo del admin
+const ADMIN_EMAIL  = 'rrhh@tooltek.cl';       // ← Correo del admin
 // ══════════════════════════════════════════════════════════════
 
 // ── MENÚ FALLBACK (se usa si Apps Script no responde) ──
@@ -532,52 +534,47 @@ const TL={A:'Plato A',B:'Plato B',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',
 const TC={A:'var(--azul-medio)',B:'var(--pur)',H:'var(--grn)',V:'var(--lim)',L:'#e88c30'};
 const TB={A:'bA',B:'bB',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 
-// ══ JSONP helper — único método que evita CORS con Apps Script ══
-function fetchJSONP(url) {
-  return new Promise((resolve, reject) => {
-    const cb = 'cb_' + Date.now();
-    const script = document.createElement('script');
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 10000);
-    function cleanup() { clearTimeout(timer); delete window[cb]; if(script.parentNode) script.remove(); }
-    window[cb] = (data) => { cleanup(); resolve(data); };
-    script.src = url + '&callback=' + cb;
-    script.onerror = () => { cleanup(); reject(new Error('Failed to load')); };
-    document.head.appendChild(script);
-  });
+// ══ CARGA DEL MENÚ desde Google Sheets publicada ══
+const SHEET_ID = '1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98';
+const SHEET_GID = '0'; // GID de la hoja menu_activo (0 = primera hoja)
+
+async function cargarMenuRemoto() {
+  try {
+    // Este endpoint sí permite CORS cuando la hoja está publicada
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=menu_activo&t=` + Date.now();
+    const res = await fetch(url, {mode:'cors'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv = await res.text();
+    // La celda A1 contiene el JSON del menú guardado por Apps Script
+    const firstCell = csv.split('\n')[0].replace(/^"|"$/g,'').replace(/""/g,'"');
+    const data = JSON.parse(firstCell);
+    if (!data.menu) throw new Error('Sin menú en la hoja');
+    const validDates = Object.keys(data.menu).filter(dk => {
+      const d = data.menu[dk]; return !d.feriado && d.A && d.B;
+    }).sort();
+    if (!validDates.length) throw new Error('Sin días válidos');
+    MENU = data.menu; DATES = validDates; menuMes = data.mes || menuMes;
+    menuLoaded = true;
+    const label = menuMes;
+    document.getElementById('datePill').textContent       = 'Colaciones ' + label;
+    document.getElementById('resumenPill').textContent    = 'Resumen · ' + label;
+    document.getElementById('adminMonthPill').textContent = label;
+    const updated = data.updated ? ' · actualizado ' + new Date(data.updated).toLocaleDateString('es-CL') : '';
+    setMenuBanner('ok', '✅ Menú ' + label + ' cargado' + updated);
+    saveMenuLocal();
+    checkStart();
+  } catch(err) {
+    console.warn('Error cargando menú desde Sheets:', err.message);
+    // Fallback localStorage
+    if (DATES.length > 0 && menuMes !== 'Mayo 2026') {
+      setMenuBanner('ok', '📋 Menú ' + menuMes + ' (guardado localmente)');
+      menuLoaded = true; checkStart(); return;
+    }
+    setMenuBanner('err', '⚠️ Sin menú — el admin debe cargar el Excel.');
+    menuLoaded = true; checkStart();
+  }
 }
 
-// ══ CARGA DEL MENÚ DESDE APPS SCRIPT (JSONP) ══
-async function cargarMenuRemoto() {
-  if (WEBHOOK_URL === 'TU_URL_APPS_SCRIPT') {
-    setMenuBanner('ok', '📋 Menú de ' + menuMes + ' cargado');
-    menuLoaded = true; checkStart(); return;
-  }
-  try {
-    const data = await fetchJSONP(WEBHOOK_URL + '?action=obtener_menu');
-    if (data.ok && data.menu) {
-      const validDates = Object.keys(data.menu).filter(dk => {
-        const d = data.menu[dk]; return !d.feriado && d.A && d.B;
-      }).sort();
-      if (validDates.length > 0) {
-        MENU = data.menu; DATES = validDates; menuMes = data.mes || menuMes;
-        menuLoaded = true;
-        const label = menuMes;
-        document.getElementById('datePill').textContent      = 'Colaciones ' + label;
-        document.getElementById('resumenPill').textContent   = 'Resumen · ' + label;
-        document.getElementById('adminMonthPill').textContent = label;
-        const updated = data.updated ? ' · actualizado ' + new Date(data.updated).toLocaleDateString('es-CL') : '';
-        setMenuBanner('ok', '✅ Menú ' + label + ' cargado' + updated);
-        checkStart(); return;
-      }
-    }
-    setMenuBanner('err', '⚠️ No hay menú cargado aún. El admin debe subir el Excel.');
-    menuLoaded = true; checkStart();
-  } catch (err) {
-    setMenuBanner('err', '⚠️ No se pudo conectar. Usando menú local de respaldo.');
-    menuLoaded = true; checkStart();
-    console.warn('Error cargando menú:', err);
-  }
-}
 
 function setMenuBanner(type, msg) {
   const b = document.getElementById('menuBanner');
@@ -810,9 +807,51 @@ function showUploadSuccess(fileName,nDias,mes){
   document.getElementById('upIcon').textContent='✅';
   document.getElementById('upTitle').textContent='Minuta cargada: '+mes;
   document.getElementById('upDesc').textContent=nDias+' días hábiles detectados · '+fileName;
+  saveMenuLocal();
   renderMenuPreview();
-  // ── AUTO-GUARDAR EN APPS SCRIPT ──
   guardarMenuRemoto();
+  // Descargar menu.json automáticamente para subir a GitHub
+  setTimeout(()=>descargarMenuJson(), 800);
+}
+
+function descargarMenuJson(){
+  const json=JSON.stringify({menu:MENU,dates:DATES,mes:menuMes,updated:new Date().toISOString()},null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='menu.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('📥 menu.json descargado — súbelo a GitHub para que todos vean el menú',6000);
+}
+
+// Cargar menu.json manualmente en el panel admin (para cuando ya está en GitHub)
+function loadMenuJson(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.menu)throw new Error('Formato inválido');
+      const validDates=Object.keys(data.menu).filter(dk=>{const d=data.menu[dk];return !d.feriado&&d.A&&d.B;}).sort();
+      if(!validDates.length)throw new Error('Sin días válidos');
+      MENU=data.menu;DATES=validDates;menuMes=data.mes||menuMes;
+      saveMenuLocal();
+      const label=menuMes;
+      document.getElementById('datePill').textContent='Colaciones '+label;
+      document.getElementById('resumenPill').textContent='Resumen · '+label;
+      document.getElementById('adminMonthPill').textContent=label;
+      renderMenuPreview();
+      document.getElementById('upZone').classList.add('loaded');
+      document.getElementById('upIcon').textContent='✅';
+      document.getElementById('upTitle').textContent='Menú cargado: '+label;
+      document.getElementById('upDesc').textContent=validDates.length+' días hábiles · '+f.name;
+      showToast('✅ Menú '+label+' cargado correctamente');
+      renderAdmin();
+    }catch(err){showToast('❌ Error leyendo menu.json: '+err.message);}
+  };
+  r.readAsText(f);
+  e.target.value='';
 }
 
 function renderMenuPreview(){
@@ -837,36 +876,71 @@ function adminLogout(){adminOk=false;switchView('emp',{currentTarget:document.qu
 function openAdmin(){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-adm').classList.add('active');
-  // Mostrar estado de carga
   document.getElementById('tblBody').innerHTML='<div class="empty"><div class="spinner" style="width:22px;height:22px;margin:0 auto 8px"></div><p>Cargando solicitudes...</p></div>';
   document.getElementById('tblWrap').style.display='block';
   document.getElementById('statsGrid').style.display='none';
   document.getElementById('resSection').style.display='none';
-  // Cargar desde Sheets y luego renderizar
   cargarSolicitudesRemotas().then(()=>renderAdmin());
 }
 function switchView(v,e){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));e.currentTarget.classList.add('active');if(v==='adm'){if(!adminOk){document.getElementById('adminModal').classList.remove('hidden');setTimeout(()=>document.getElementById('adminPass').focus(),80);}else openAdmin();return;}document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));document.getElementById('view-'+v).classList.add('active');}
 
 // ══ STATE ══
 let solicitudes=[],choices={},curIdx=0,adminFilter='all',_tmp={tipo:null,ens:null,pos:null};
-function loadStor(){const s=localStorage.getItem('tt_v6');if(s)try{solicitudes=JSON.parse(s);}catch(e){}}
-function saveStor(){localStorage.setItem('tt_v6',JSON.stringify(solicitudes));}
-
-// ══ CARGAR SOLICITUDES DESDE SHEETS (JSONP) ══
-async function cargarSolicitudesRemotas() {
-  if (WEBHOOK_URL === 'TU_URL_APPS_SCRIPT') { loadStor(); return; }
-  try {
-    const data = await fetchJSONP(WEBHOOK_URL + '?action=obtener_solicitudes');
-    if (data.ok && Array.isArray(data.solicitudes)) {
-      solicitudes = data.solicitudes;
-      // Sincronizar también en localStorage como caché
-      saveStor();
-    } else {
-      loadStor();
+function loadStor(){
+  const s=localStorage.getItem('tt_v6');
+  if(s)try{solicitudes=JSON.parse(s);}catch(e){}
+  // Restaurar menú guardado localmente
+  const m=localStorage.getItem('tt_menu');
+  if(m)try{
+    const md=JSON.parse(m);
+    if(md.menu&&md.dates&&md.mes){
+      MENU=md.menu;DATES=md.dates;menuMes=md.mes;
+      const label=menuMes;
+      document.getElementById('datePill').textContent='Colaciones '+label;
+      document.getElementById('resumenPill').textContent='Resumen · '+label;
+      document.getElementById('adminMonthPill').textContent=label;
     }
+  }catch(e){}
+}
+function saveStor(){localStorage.setItem('tt_v6',JSON.stringify(solicitudes));}
+function saveMenuLocal(){localStorage.setItem('tt_menu',JSON.stringify({menu:MENU,dates:DATES,mes:menuMes}));}
+
+// ══ CARGAR SOLICITUDES DESDE SHEETS (CSV publicado) ══
+async function cargarSolicitudesRemotas() {
+  loadStor(); // caché local primero
+  try {
+    setSyncStatus('syncing', '☁️ Cargando solicitudes...');
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=solicitudes&t=` + Date.now();
+    const res = await fetch(url, {mode:'cors'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv = await res.text();
+    const lines = csv.trim().split('\n');
+    if (lines.length < 2) { setSyncStatus('ok','✅ Sin solicitudes aún'); return; }
+    // Parsear CSV: ID,Nombre,Email,Área,Mes,Fecha,Hora,DiasJSON
+    const parsed = lines.slice(1).map(line => {
+      // Split respetando comillas
+      const cols = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') { inQ = !inQ; }
+        else if (c === ',' && !inQ) { cols.push(cur); cur = ''; }
+        else cur += c;
+      }
+      cols.push(cur);
+      if (!cols[0]) return null;
+      return {
+        id: cols[0], nombre: cols[1], email: cols[2], area: cols[3],
+        mes: cols[4], fecha_reg: cols[5], hora: cols[6],
+        dias: (() => { try { return JSON.parse(cols[7]); } catch(e) { return []; } })()
+      };
+    }).filter(Boolean);
+    solicitudes = parsed;
+    saveStor();
+    setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes cargadas');
   } catch(err) {
-    console.warn('Error cargando solicitudes:', err);
-    loadStor(); // fallback a localStorage
+    setSyncStatus('err', '❌ ' + err.message + ' — datos locales');
+    console.warn('Error solicitudes:', err);
   }
 }
 
@@ -1034,6 +1108,12 @@ function showToast(msg,dur=3000){const t=document.getElementById('toast');t.text
 
 // ══ INIT ══
 loadStor();
+// Si hay menú en localStorage, mostrarlo de inmediato
+if(DATES.length>0){
+  menuLoaded=true;
+  setMenuBanner('ok','📋 Menú '+menuMes+' (local) · actualizando...');
+  checkStart();
+}
 cargarMenuRemoto();
 </script>
 </body>
