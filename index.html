@@ -464,6 +464,7 @@ onkeydown="if(event.key==='Enter')checkPass()">
 <div class="admin-acts">
 <button class="abtn ao" onclick="document.getElementById('fileInput').click()">📂 Cargar Minuta Excel</button>
 <button class="abtn ap" onclick="exportExcel()">⬇ Exportar Solicitudes</button>
+<button class="abtn as" onclick="window.open('https://docs.google.com/spreadsheets/d/1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98','_blank')">📊 Ver en Google Sheets</button>
 <button class="abtn ad" onclick="clearAll()">🗑 Limpiar datos</button>
 <button class="abtn ag" onclick="adminLogout()">🔒 Cerrar sesión</button>
 <span id="syncStatus" class="sync-status" style="display:none"></span>
@@ -535,400 +536,62 @@ const TB={A:'bA',B:'bB',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 // ══ Google Sheets Visualization API — funciona cross-origin sin CORS ══
 const SHEET_ID = '1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98';
 
-function sheetsViz(sheetName) {
-  return new Promise((resolve, reject) => {
-    const cb = 'viz_' + Date.now();
-    const script = document.createElement('script');
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
-    function cleanup() { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.remove(); }
-    window[cb] = (data) => { cleanup(); resolve(data); };
-    script.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json;handler:' + cb + '&sheet=' + encodeURIComponent(sheetName) + '&t=' + Date.now();
-    script.onerror = () => { cleanup(); reject(new Error('No se pudo cargar la hoja')); };
-    document.head.appendChild(script);
-  });
+// ══ Leer desde Apps Script via HtmlService (tiene CORS correcto) ══
+async function gasGet(action) {
+  // HtmlService devuelve desde script.googleusercontent.com con CORS permisivo
+  const url = WEBHOOK_URL + '?action=' + action + '&t=' + Date.now();
+  const res = await fetch(url, { redirect: 'follow' });
+  const text = await res.text();
+  // HtmlService devuelve el JSON como contenido HTML — extraerlo
+  const clean = text.replace(/<[^>]*>/g, '').trim();
+  return JSON.parse(clean);
 }
 
-// ══ CARGA DEL MENÚ desde Sheets Visualization API ══
+// ══ CARGA DEL MENÚ desde Apps Script ══
 async function cargarMenuRemoto() {
   try {
-    const data = await sheetsViz('menu_activo');
-    const cellVal = data && data.table && data.table.rows && data.table.rows[0] && data.table.rows[0].c && data.table.rows[0].c[0] && data.table.rows[0].c[0].v;
-    if (!cellVal) throw new Error('Hoja vacía — carga el Excel desde admin');
-    const parsed = JSON.parse(cellVal);
-    if (!parsed.menu) throw new Error('Sin menú');
-    const validDates = Object.keys(parsed.menu).filter(dk => {
-      const d = parsed.menu[dk]; return !d.feriado && d.A && d.B;
-    }).sort();
-    if (!validDates.length) throw new Error('Sin días válidos');
-    MENU = parsed.menu; DATES = validDates; menuMes = parsed.mes || menuMes;
-    menuLoaded = true;
-    const label = menuMes;
-    document.getElementById('datePill').textContent       = 'Colaciones ' + label;
-    document.getElementById('resumenPill').textContent    = 'Resumen · ' + label;
-    document.getElementById('adminMonthPill').textContent = label;
-    const updated = parsed.updated ? ' · actualizado ' + new Date(parsed.updated).toLocaleDateString('es-CL') : '';
-    setMenuBanner('ok', '✅ Menú ' + label + ' cargado' + updated);
-    saveMenuLocal(); checkStart();
+    const data = await gasGet('obtener_menu');
+    if (data.ok && data.menu) {
+      const validDates = Object.keys(data.menu).filter(dk => {
+        const d = data.menu[dk]; return !d.feriado && d.A && d.B;
+      }).sort();
+      if (validDates.length > 0) {
+        MENU = data.menu; DATES = validDates; menuMes = data.mes || menuMes;
+        menuLoaded = true;
+        const label = menuMes;
+        document.getElementById('datePill').textContent       = 'Colaciones ' + label;
+        document.getElementById('resumenPill').textContent    = 'Resumen · ' + label;
+        document.getElementById('adminMonthPill').textContent = label;
+        const updated = data.updated ? ' · actualizado ' + new Date(data.updated).toLocaleDateString('es-CL') : '';
+        setMenuBanner('ok', '✅ Menú ' + label + ' cargado' + updated);
+        saveMenuLocal(); checkStart(); return;
+      }
+    }
+    throw new Error(data.error || 'Sin menú');
   } catch(err) {
-    console.warn('Error cargando menú:', err.message);
+    console.warn('Error menú:', err.message);
     if (DATES.length > 0 && menuMes !== 'Mayo 2026') {
       setMenuBanner('ok', '📋 Menú ' + menuMes + ' (guardado localmente)');
       menuLoaded = true; checkStart(); return;
     }
-    setMenuBanner('err', '⚠️ ' + err.message);
+    setMenuBanner('err', '⚠️ Sin menú — el admin debe cargar el Excel.');
     menuLoaded = true; checkStart();
   }
 }
 
-
-function setMenuBanner(type, msg) {
-  const b = document.getElementById('menuBanner');
-  const t = document.getElementById('menuBannerTxt');
-  b.className = 'menu-loading-banner ' + (type || '');
-  t.textContent = msg;
-}
-
-// ══ GUARDAR MENÚ EN APPS SCRIPT (no-cors) ══
-async function guardarMenuRemoto() {
-  if (WEBHOOK_URL === 'TU_URL_APPS_SCRIPT') {
-    showToast('⚠️ Configura WEBHOOK_URL en el código'); return false;
-  }
-  setSyncStatus('syncing', '☁️ Publicando menú...');
-  try {
-    // no-cors: Apps Script ejecuta el código aunque no podamos leer la respuesta
-    await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      mode:   'no-cors',
-      body:   JSON.stringify({ action:'guardar_menu', menu:MENU, dates:DATES, mes:menuMes, updatedBy:'Admin' })
-    });
-    setSyncStatus('ok', '✅ Menú publicado para todos');
-    showToast('✅ Menú guardado — todos los empleados lo verán ahora');
-    return true;
-  } catch (err) {
-    setSyncStatus('err', '❌ Error al publicar');
-    showToast('❌ No se pudo guardar: ' + err.message);
-    return false;
-  }
-}
-
-function setSyncStatus(type, msg) {
-  const el = document.getElementById('syncStatus');
-  el.style.display = 'inline-flex';
-  el.className = 'sync-status ' + type;
-  el.textContent = msg;
-}
-
-// ══ EXCEL PARSER UNIVERSAL TOOLTEK ══
-function parseMenuExcel(wb){
-  const MONTH_NAMES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
-    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  function parseDK(txt){if(!txt)return null;const m=String(txt).match(/(\d{1,2})[\/\-](\d{1,2})/);return m?m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0'):null;}
-  function parseDow(txt){const DOW={lunes:'Lun',martes:'Mar','miercoles':'Mié','miércoles':'Mié',jueves:'Jue',viernes:'Vie'};const t=String(txt).toLowerCase().trim();for(const [k,v] of Object.entries(DOW))if(t.startsWith(k))return v;return String(txt).split(/[\s\-]/)[0];}
-  function clean(v){return v?String(v).trim():'';}
-  function normT(s){return Array.from(s).map(c=>({Ñ:'N',Á:'A',É:'E',Í:'I',Ó:'O',Ú:'U'}[c]||c)).join('');}
-  function stripEns(s){return s.replace(/^ENS\s+/i,'').trim();}
-  const TIPOS=['A','B','H','V','L'];
-  function findDateCols(row){const DR=/\d{1,2}[\/\-]\d{1,2}/;return row.reduce((acc,v,i)=>{if(!v)return acc;const s=String(v).trim();if(DR.test(s)&&s.length<40&&!['CANT','CANTIDAD'].includes(s.toUpperCase()))acc.push(i);return acc;},{});}
-  // Usar reduce para obtener array
-  function findDateColsArr(row){const DR=/\d{1,2}[\/\-]\d{1,2}/;const acc=[];row.forEach((v,i)=>{if(!v)return;const s=String(v).trim();if(DR.test(s)&&s.length<40&&!['CANT','CANTIDAD'].includes(s.toUpperCase()))acc.push(i);});return acc;}
-  const candidates=[];
-  for(const sn of wb.SheetNames){
-    const ws=wb.Sheets[sn];
-    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-    const semRow=rows.find(r=>r&&r[0]&&String(r[0]).trim().toUpperCase().startsWith('SEMANA'));
-    if(!semRow)continue;
-    const dayCols=findDateColsArr(semRow);
-    if(!dayCols.length)continue;
-    let mon='',yr='';
-    for(const row of rows.slice(0,5)){if(!row)continue;const txt=row.map(v=>v?String(v):'').join(' ').toUpperCase();for(let mi=1;mi<=12;mi++){if(txt.includes(MONTH_NAMES[mi].toUpperCase())){mon=MONTH_NAMES[mi];const ym=txt.match(/20\d{2}/);if(ym)yr=ym[0];break;}}if(mon)break;}
-    if(!mon){for(const col of dayCols){const dk=parseDK(semRow[col]);if(dk){const mm=parseInt(dk.split('/')[1],10);if(mm>=1&&mm<=12){mon=MONTH_NAMES[mm];break;}}}}
-    candidates.push({sn,mon,yr});
-  }
-  let picked=null;
-  for(const c of candidates)if(c.mon&&c.sn.trim().toUpperCase()===c.mon.toUpperCase())picked=c;
-  if(!picked)for(const c of candidates)if(c.sn.trim()==='Hoja1'){picked=c;break;}
-  if(!picked)for(const c of candidates)if(c.mon){picked=c;break;}
-  if(!picked&&candidates.length)picked=candidates[0];
-  if(!picked)return{menu:{},mes:''};
-  const ws=wb.Sheets[picked.sn];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-  const targetMM=picked.mon?MONTH_NAMES.indexOf(picked.mon):0;
-  const newMenu={};
-  // Pre-scan: detectar filas sueltas con 'FERIADO' y buscar la fecha en la misma columna
-  const feriadosDates=new Set();
-  for(let fi=0;fi<rows.length;fi++){
-    const fr=rows[fi];
-    if(!fr)continue;
-    fr.forEach((v,ci)=>{
-      if(!v||String(v).trim().toUpperCase()!=='FERIADO')return;
-      // Buscar la fecha más cercana en la misma columna, primero hacia adelante luego atrás
-      for(let d=1;d<=8;d++){
-        const nr=rows[fi+d];if(!nr)continue;
-        const nv=nr[ci]?String(nr[ci]).trim():'';
-        const dk2=parseDK(nv);
-        if(dk2){feriadosDates.add(dk2);return;}
-      }
-      for(let d=1;d<=8;d++){
-        const nr=rows[fi-d];if(!nr)continue;
-        const nv=nr[ci]?String(nr[ci]).trim():'';
-        const dk2=parseDK(nv);
-        if(dk2){feriadosDates.add(dk2);return;}
-      }
-    });
-  }
-  let i=0;
-  while(i<rows.length){
-    const row=rows[i];
-    if(!row||!row[0]){i++;continue;}
-    const c0=String(row[0]).trim().toUpperCase();
-    if(!c0.startsWith('SEMANA')){i++;continue;}
-    const semLabel=String(row[0]).trim();
-    const dayCols=findDateColsArr(row);
-    const wds=[];
-    for(const col of dayCols){
-      const dk=parseDK(row[col]);
-      if(!dk)continue;
-      if(targetMM&&parseInt(dk.split('/')[1],10)!==targetMM)continue;
-      // Verificar si el día tiene datos en las filas de platos (cols col de filas siguientes)
-      // Un día es feriado si su columna está vacía en todas las filas de plato de la semana
-      const esFeriado=feriadosDates.has(dk);
-      wds.push({col,dk});
-      newMenu[dk]={label:parseDow(String(row[col]))+' '+dk.split('/')[0],full:String(row[col]).replace(/\s*-\s*/,' ').trim(),semana:semLabel,ens:[],A:'',B:'',H:'',V:'',L:'',pos:[],feriado:esFeriado};
-    }
-    i++;
-    if(!wds.length)continue;
-    let pendingType=null;
-    while(i<rows.length){
-      const r=rows[i];
-      if(!r||!r.some(v=>v)){i++;continue;}
-      const rc0=r[0]?String(r[0]).trim().toUpperCase():'';
-      if(rc0.startsWith('SEMANA'))break;
-      const rc1=r[1]?String(r[1]).trim().toUpperCase():'';
-      const rc2=r[2]?String(r[2]).trim().toUpperCase():'';
-      if(!rc0&&!rc1){const dv=wds[0]&&wds[0].col<r.length?r[wds[0].col]:null;if(dv&&/\d{1,2}[\/\-]\d{1,2}/.test(String(dv))&&!String(dv).toUpperCase().includes('ENS')&&String(dv).length<35)break;}
-      const isHipo=rc1.includes('HIPOCAL');
-      const isVeg=rc1.includes('VEGETARIANO')&&!isHipo;
-      const isLiv=rc1.includes('LIVIANO')&&!isHipo&&!isVeg;
-      const isPost=rc1.includes('POSTRE');
-      // ── FIX 1: detectar feriado en rc1 directamente ──
-      const isFeriado=rc1.includes('FERIADO')||rc0.includes('FERIADO');
-      const rc1n=normT(rc1);
-      const isPlatA=rc1.includes('ACOMP')&&(rc1n.endsWith(' A')||rc1n.endsWith('MIENTO A'))&&!isHipo&&!isVeg&&!isLiv;
-      const isPlatB=rc1.includes('ACOMP')&&(rc1n.endsWith(' B')||rc1n.endsWith('MIENTO B'))&&!isHipo&&!isVeg&&!isLiv;
-      const isEns=rc1==='ENSALADAS'&&!isHipo&&!isVeg;
-      const tipoCol2=(!isPlatA&&!isPlatB&&!isHipo&&!isVeg&&!isLiv&&TIPOS.includes(rc2))?rc2:null;
-      if(isFeriado){
-        for(const {col,dk} of wds){
-          const v=col<r.length?r[col]:null;
-          const vStr=v?String(v).trim().toUpperCase():'';
-          // Solo marcar feriado si la celda específica del día dice FERIADO
-          // o si rc0/rc1 dice FERIADO y no hay valor en ninguna columna de datos
-          if(vStr==='FERIADO'){if(newMenu[dk])newMenu[dk].feriado=true;}
-          else if(!vStr&&(rc0==='FERIADO'||rc1==='FERIADO')){if(newMenu[dk])newMenu[dk].feriado=true;}
-        }
-        pendingType=null;
-      }
-      else if(isEns){pendingType='ENS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk]&&String(v).trim().toUpperCase()!=='FERIADO')newMenu[dk].ens.push(stripEns(clean(v)));}}
-      else if(isPlatA||isPlatB||isHipo||isVeg||isLiv){
-        pendingType=isPlatA?'A':isPlatB?'B':isHipo?'H':isVeg?'V':'L';
-        for(const {col,dk} of wds){
-          const v=col<r.length?r[col]:null;
-          if(!newMenu[dk])continue;if(!v)continue;
-          let val=clean(v).replace(/con ensaladas/i,'').trim();
-          if(val.toUpperCase()==='FERIADO'){newMenu[dk].feriado=true;continue;}
-          newMenu[dk][pendingType]=val;
-        }
-      }
-      else if(tipoCol2){pendingType=null;for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!newMenu[dk])continue;if(!v)continue;let val=clean(v).replace(/con ensaladas/i,'').trim();if(val.toUpperCase()==='FERIADO')continue;newMenu[dk][tipoCol2]=val;}}
-      else if(isPost){pendingType='POS';for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk]&&String(v).trim().toUpperCase()!=='FERIADO')newMenu[dk].pos.push(clean(v));}}
-      else if(!rc0&&!rc1){
-        const hasVals=wds.some(({col})=>col<r.length&&r[col]&&String(r[col]).trim().length>1&&String(r[col]).trim().toUpperCase()!=='FERIADO');
-        if(hasVals&&pendingType&&pendingType!=='ENS'&&pendingType!=='POS'){
-          for(const {col,dk} of wds){
-            const v=col<r.length?r[col]:null;
-            if(!v||!newMenu[dk])continue;
-            const acomp=clean(v).replace(/con ensaladas/i,'').trim();
-            if(!acomp||acomp.toUpperCase()==='FERIADO')continue;
-            if(acomp&&newMenu[dk][pendingType]&&!['H','L'].includes(pendingType))
-              newMenu[dk][pendingType]+=' / '+acomp;
-          }
-          pendingType=null;
-        } else if(hasVals&&pendingType==='ENS'){
-          for(const {col,dk} of wds){
-            const v=col<r.length?r[col]:null;
-            if(!v||!newMenu[dk])continue;
-            if(String(v).trim().toUpperCase()==='FERIADO')continue;
-            newMenu[dk].ens.push(stripEns(clean(v)));
-          }
-        } else if(hasVals&&pendingType==='POS'){
-          for(const {col,dk} of wds){
-            const v=col<r.length?r[col]:null;
-            if(!v||!newMenu[dk])continue;
-            if(String(v).trim().toUpperCase()==='FERIADO')continue;
-            newMenu[dk].pos.push(clean(v));
-          }
-        } else if(hasVals){
-          const POSTRES_KW=['FLAN','JALEA','FRUTA','BRAZO','TORTA','QUEQUE','MOUSSE','POSTRE','COMPOTA','HELADO','ARROZ CON LECHE','GELATINA','PREELAB'];
-          for(const {col,dk} of wds){
-            const v=col<r.length?r[col]:null;
-            if(!v||!newMenu[dk])continue;
-            const val=stripEns(clean(v));
-            if(!val||val.toUpperCase()==='FERIADO')continue;
-            const valUp=val.toUpperCase();
-            const isPostreByKw=POSTRES_KW.some(kw=>valUp.includes(kw));
-            const ensYaSuf=(newMenu[dk].ens?.length||0)>=2;
-            if(isPostreByKw||ensYaSuf) newMenu[dk].pos.push(val);
-            else newMenu[dk].ens.push(val);
-          }
-        }
-      }
-      else{pendingType=null;}
-      i++;
-    }
-    for(const {dk} of wds){
-      if(newMenu[dk]&&!newMenu[dk].A&&!newMenu[dk].feriado)newMenu[dk].feriado=true;
-      // También aplicar feriados del pre-scan
-      if(newMenu[dk]&&feriadosDates.has(dk))newMenu[dk].feriado=true;
-    }
-  }
-  return{menu:newMenu,mes:(picked.mon+(picked.yr?' '+picked.yr:''))};
-}
-
-function applyMenu(parsed, fileName){
-  const validDates=Object.keys(parsed.menu).filter(dk=>{const d=parsed.menu[dk];return !d.feriado&&d.A&&d.B;}).sort();
-  if(validDates.length===0){showToast('⚠️ No se encontraron días hábiles en el archivo');return false;}
-  MENU=parsed.menu;DATES=validDates;
-  menuMes=parsed.mes||fileName.replace(/[_\-]/g,' ').replace(/\.xlsx?/i,'');
-  const label=menuMes||'Menú cargado';
-  document.getElementById('datePill').textContent='Colaciones '+label;
-  document.getElementById('resumenPill').textContent='Resumen · '+label;
-  document.getElementById('adminMonthPill').textContent=label;
-  return true;
-}
-
-function showUploadSuccess(fileName,nDias,mes){
-  const zone=document.getElementById('upZone');
-  zone.classList.add('loaded');zone.onclick=null;
-  document.getElementById('upIcon').textContent='✅';
-  document.getElementById('upTitle').textContent='Minuta cargada: '+mes;
-  document.getElementById('upDesc').textContent=nDias+' días hábiles detectados · '+fileName;
-  saveMenuLocal();
-  renderMenuPreview();
-  guardarMenuRemoto();
-}
-
-function descargarMenuJson(){
-  const json=JSON.stringify({menu:MENU,dates:DATES,mes:menuMes,updated:new Date().toISOString()},null,2);
-  const blob=new Blob([json],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='menu.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showToast('📥 menu.json descargado — súbelo a GitHub para que todos vean el menú',6000);
-}
-
-// Cargar menu.json manualmente en el panel admin (para cuando ya está en GitHub)
-function loadMenuJson(e){
-  const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const data=JSON.parse(ev.target.result);
-      if(!data.menu)throw new Error('Formato inválido');
-      const validDates=Object.keys(data.menu).filter(dk=>{const d=data.menu[dk];return !d.feriado&&d.A&&d.B;}).sort();
-      if(!validDates.length)throw new Error('Sin días válidos');
-      MENU=data.menu;DATES=validDates;menuMes=data.mes||menuMes;
-      saveMenuLocal();
-      const label=menuMes;
-      document.getElementById('datePill').textContent='Colaciones '+label;
-      document.getElementById('resumenPill').textContent='Resumen · '+label;
-      document.getElementById('adminMonthPill').textContent=label;
-      renderMenuPreview();
-      document.getElementById('upZone').classList.add('loaded');
-      document.getElementById('upIcon').textContent='✅';
-      document.getElementById('upTitle').textContent='Menú cargado: '+label;
-      document.getElementById('upDesc').textContent=validDates.length+' días hábiles · '+f.name;
-      showToast('✅ Menú '+label+' cargado correctamente');
-      renderAdmin();
-    }catch(err){showToast('❌ Error leyendo menu.json: '+err.message);}
-  };
-  r.readAsText(f);
-  e.target.value='';
-}
-
-function renderMenuPreview(){
-  const el=document.getElementById('menuPreview');
-  const semanas={};
-  for(const dk of DATES){const d=MENU[dk];if(!semanas[d.semana])semanas[d.semana]=[];semanas[d.semana].push(dk);}
-  let html=`<div class="menu-preview"><div class="mp-header"><h3>📋 Vista previa de la minuta — ${menuMes}</h3><span>${DATES.length} días hábiles</span></div><div class="mp-body">`;
-  for(const [sem,dks] of Object.entries(semanas)){
-    html+=`<div class="mp-week"><div class="mp-week-title">${sem}</div><div class="mp-days">`;
-    for(const dk of dks){const d=MENU[dk];html+=`<div class="mp-day"><div class="mp-day-label">${d.label}</div><div class="mp-row"><strong>A:</strong> ${d.A.substring(0,40)}${d.A.length>40?'…':''}</div><div class="mp-row"><strong>B:</strong> ${d.B.substring(0,40)}${d.B.length>40?'…':''}</div><div class="mp-row"><strong>H:</strong> ${d.H.substring(0,38)}${d.H.length>38?'…':''}</div><div class="mp-row"><strong>V:</strong> ${d.V.substring(0,38)}${d.V.length>38?'…':''}</div><div class="mp-row" style="margin-top:3px"><strong style="color:var(--pur)">Ens:</strong> ${d.ens.join(' · ')}</div></div>`;}
-    html+=`</div></div>`;
-  }
-  html+=`</div></div>`;
-  el.innerHTML=html;el.style.display='block';
-}
-
-// ══ PWD ══
-const PWD='tooltek2026';let adminOk=false;
-function checkPass(){const v=document.getElementById('adminPass').value,inp=document.getElementById('adminPass');if(v===PWD){adminOk=true;document.getElementById('adminModal').classList.add('hidden');inp.value='';document.getElementById('passErr').textContent='';openAdmin();}else{inp.classList.add('err');document.getElementById('passErr').textContent='Contraseña incorrecta.';setTimeout(()=>inp.classList.remove('err'),350);inp.value='';inp.focus();}}
-function cancelModal(){document.getElementById('adminModal').classList.add('hidden');document.getElementById('adminPass').value='';document.getElementById('passErr').textContent='';document.querySelectorAll('.nav-tab').forEach((t,i)=>t.classList.toggle('active',i===0));document.querySelectorAll('.view').forEach((v,i)=>v.classList.toggle('active',i===0));}
-function adminLogout(){adminOk=false;switchView('emp',{currentTarget:document.querySelectorAll('.nav-tab')[0]});showToast('Sesión cerrada');}
-function openAdmin(){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-adm').classList.add('active');
-  document.getElementById('tblBody').innerHTML='<div class="empty"><div class="spinner" style="width:22px;height:22px;margin:0 auto 8px"></div><p>Cargando solicitudes...</p></div>';
-  document.getElementById('tblWrap').style.display='block';
-  document.getElementById('statsGrid').style.display='none';
-  document.getElementById('resSection').style.display='none';
-  cargarSolicitudesRemotas().then(()=>renderAdmin());
-}
-function switchView(v,e){document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));e.currentTarget.classList.add('active');if(v==='adm'){if(!adminOk){document.getElementById('adminModal').classList.remove('hidden');setTimeout(()=>document.getElementById('adminPass').focus(),80);}else openAdmin();return;}document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));document.getElementById('view-'+v).classList.add('active');}
-
-// ══ STATE ══
-let solicitudes=[],choices={},curIdx=0,adminFilter='all',_tmp={tipo:null,ens:null,pos:null};
-function loadStor(){
-  const s=localStorage.getItem('tt_v6');
-  if(s)try{solicitudes=JSON.parse(s);}catch(e){}
-  // Restaurar menú guardado localmente
-  const m=localStorage.getItem('tt_menu');
-  if(m)try{
-    const md=JSON.parse(m);
-    if(md.menu&&md.dates&&md.mes){
-      MENU=md.menu;DATES=md.dates;menuMes=md.mes;
-      const label=menuMes;
-      document.getElementById('datePill').textContent='Colaciones '+label;
-      document.getElementById('resumenPill').textContent='Resumen · '+label;
-      document.getElementById('adminMonthPill').textContent=label;
-    }
-  }catch(e){}
-}
-function saveStor(){localStorage.setItem('tt_v6',JSON.stringify(solicitudes));}
-function saveMenuLocal(){localStorage.setItem('tt_menu',JSON.stringify({menu:MENU,dates:DATES,mes:menuMes}));}
-
-// ══ CARGAR SOLICITUDES DESDE APPS SCRIPT (JSONP) ══
+// ══ CARGAR SOLICITUDES desde Apps Script ══
 async function cargarSolicitudesRemotas() {
   loadStor();
   try {
     setSyncStatus('syncing', '☁️ Cargando solicitudes...');
-    const data = await sheetsViz('solicitudes');
-    const rows = (data && data.table && data.table.rows) || [];
-    if (!rows.length) { setSyncStatus('ok', '✅ Sin solicitudes aún'); return; }
-    const parsed = rows.map(row => {
-      const c = row.c || [];
-      const get = i => (c[i] && c[i].v != null) ? String(c[i].v) : '';
-      if (!get(0)) return null;
-      return {
-        id: get(0), nombre: get(1), email: get(2), area: get(3),
-        mes: get(4), fecha_reg: get(5), hora: get(6),
-        dias: (function(){ try { return JSON.parse(get(7)); } catch(e) { return []; } })()
-      };
-    }).filter(Boolean);
-    solicitudes = parsed;
-    saveStor();
-    setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes cargadas');
+    const data = await gasGet('obtener_solicitudes');
+    if (data.ok && Array.isArray(data.solicitudes)) {
+      solicitudes = data.solicitudes;
+      saveStor();
+      setSyncStatus('ok', '✅ ' + data.solicitudes.length + ' solicitudes cargadas');
+    } else {
+      setSyncStatus('err', '⚠️ ' + (data.error || 'Error'));
+    }
   } catch(err) {
     setSyncStatus('err', '❌ ' + err.message);
     console.warn('Error solicitudes:', err);
@@ -1021,6 +684,35 @@ async function sendEmail(pedido,selDias,ausDias){
 // ══ LOAD EXCEL ══
 function loadExcel(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array'});const parsed=parseMenuExcel(wb);if(!applyMenu(parsed,f.name)){return;}showUploadSuccess(f.name,DATES.length,menuMes);}catch(err){showToast('❌ Error leyendo Excel: '+err.message);}};r.readAsArrayBuffer(f);}
 function dropFile(e){e.preventDefault();document.getElementById('upZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(!f)return;const fake={target:{files:[f]}};loadExcel(fake);}
+
+function showUploadSuccess(fileName,nDias,mes){
+  const zone=document.getElementById('upZone');
+  zone.classList.add('loaded');zone.onclick=null;
+  document.getElementById('upIcon').textContent='✅';
+  document.getElementById('upTitle').textContent='Minuta cargada: '+mes;
+  document.getElementById('upDesc').textContent=nDias+' días hábiles detectados · '+fileName;
+  saveMenuLocal();
+  renderMenuPreview();
+  // Enviar a Apps Script (para correos)
+  fetch(WEBHOOK_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'guardar_menu',menu:MENU,dates:DATES,mes:menuMes,updatedBy:'Admin'})}).catch(()=>{});
+  // Descargar menu.json para subir a GitHub
+  const json=JSON.stringify({menu:MENU,dates:DATES,mes:menuMes,updated:new Date().toISOString()},null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='menu.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('📥 Sube el menu.json a GitHub para que todos vean el menú',6000);
+}
+
+function setSyncStatus(type, msg) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.style.display = 'inline-flex';
+  el.className = 'sync-status ' + type;
+  el.textContent = msg;
+}
 
 // ══ ADMIN ══
 function renderAdmin(){renderStats();renderTable();renderResumen();}
