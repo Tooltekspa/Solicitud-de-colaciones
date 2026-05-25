@@ -532,31 +532,42 @@ const TL={A:'Plato A',B:'Plato B',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',
 const TC={A:'var(--azul-medio)',B:'var(--pur)',H:'var(--grn)',V:'var(--lim)',L:'#e88c30'};
 const TB={A:'bA',B:'bB',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 
-// ══ CARGA DEL MENÚ desde Google Sheets (Visualization API) ══
-const SHEET_ID = '1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98';
+// ══ JSONP para Apps Script ══
+function gasJSONP(action) {
+  return new Promise((resolve, reject) => {
+    const cb = 'gas_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
+    function cleanup() { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.remove(); }
+    window[cb] = (data) => { cleanup(); resolve(data); };
+    // Apps Script acepta JSONP con el parámetro callback
+    script.src = WEBHOOK_URL + '?action=' + action + '&callback=' + cb + '&t=' + Date.now();
+    script.onerror = () => { cleanup(); reject(new Error('Script error')); };
+    document.head.appendChild(script);
+  });
+}
 
+// ══ CARGA DEL MENÚ desde Apps Script (JSONP) ══
 async function cargarMenuRemoto() {
   try {
-    // La Visualization API de Sheets SÍ tiene CORS cuando la hoja es pública
-    // Usamos JSONP — inyecta un script tag que Google sí sirve cross-origin
-    const data = await sheetsJsonp('menu_activo');
-    const cellVal = data?.table?.rows?.[0]?.c?.[0]?.v;
-    if (!cellVal) throw new Error('Celda vacía');
-    const parsed = JSON.parse(cellVal);
-    if (!parsed.menu) throw new Error('Sin menú');
-    const validDates = Object.keys(parsed.menu).filter(dk => {
-      const d = parsed.menu[dk]; return !d.feriado && d.A && d.B;
-    }).sort();
-    if (!validDates.length) throw new Error('Sin días válidos');
-    MENU = parsed.menu; DATES = validDates; menuMes = parsed.mes || menuMes;
-    menuLoaded = true;
-    const label = menuMes;
-    document.getElementById('datePill').textContent       = 'Colaciones ' + label;
-    document.getElementById('resumenPill').textContent    = 'Resumen · ' + label;
-    document.getElementById('adminMonthPill').textContent = label;
-    const updated = parsed.updated ? ' · actualizado ' + new Date(parsed.updated).toLocaleDateString('es-CL') : '';
-    setMenuBanner('ok', '✅ Menú ' + label + ' cargado' + updated);
-    saveMenuLocal(); checkStart();
+    const data = await gasJSONP('obtener_menu');
+    if (data.ok && data.menu) {
+      const validDates = Object.keys(data.menu).filter(dk => {
+        const d = data.menu[dk]; return !d.feriado && d.A && d.B;
+      }).sort();
+      if (validDates.length > 0) {
+        MENU = data.menu; DATES = validDates; menuMes = data.mes || menuMes;
+        menuLoaded = true;
+        const label = menuMes;
+        document.getElementById('datePill').textContent       = 'Colaciones ' + label;
+        document.getElementById('resumenPill').textContent    = 'Resumen · ' + label;
+        document.getElementById('adminMonthPill').textContent = label;
+        const updated = data.updated ? ' · actualizado ' + new Date(data.updated).toLocaleDateString('es-CL') : '';
+        setMenuBanner('ok', '✅ Menú ' + label + ' cargado' + updated);
+        saveMenuLocal(); checkStart(); return;
+      }
+    }
+    throw new Error(data.error || 'Sin menú');
   } catch(err) {
     console.warn('Error cargando menú:', err.message);
     if (DATES.length > 0 && menuMes !== 'Mayo 2026') {
@@ -566,20 +577,6 @@ async function cargarMenuRemoto() {
     setMenuBanner('err', '⚠️ Sin menú — el admin debe cargar el Excel.');
     menuLoaded = true; checkStart();
   }
-}
-
-// JSONP para Google Sheets Visualization API
-function sheetsJsonp(sheetName) {
-  return new Promise((resolve, reject) => {
-    const cb = 'gsq_' + Date.now();
-    const script = document.createElement('script');
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 12000);
-    function cleanup() { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.remove(); }
-    window[cb] = (data) => { cleanup(); resolve(data); };
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;handler:${cb}&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
-    script.onerror = () => { cleanup(); reject(new Error('Script error')); };
-    document.head.appendChild(script);
-  });
 }
 
 
@@ -910,27 +907,19 @@ function loadStor(){
 function saveStor(){localStorage.setItem('tt_v6',JSON.stringify(solicitudes));}
 function saveMenuLocal(){localStorage.setItem('tt_menu',JSON.stringify({menu:MENU,dates:DATES,mes:menuMes}));}
 
-// ══ CARGAR SOLICITUDES DESDE SHEETS (Visualization API JSONP) ══
+// ══ CARGAR SOLICITUDES DESDE APPS SCRIPT (JSONP) ══
 async function cargarSolicitudesRemotas() {
   loadStor();
   try {
     setSyncStatus('syncing', '☁️ Cargando solicitudes...');
-    const data = await sheetsJsonp('solicitudes');
-    const rows = data?.table?.rows || [];
-    if (!rows.length) { setSyncStatus('ok','✅ Sin solicitudes aún'); return; }
-    const parsed = rows.map(row => {
-      const c = row.c || [];
-      const get = i => c[i]?.v ?? '';
-      if (!get(0)) return null;
-      return {
-        id: get(0), nombre: get(1), email: get(2), area: get(3),
-        mes: get(4), fecha_reg: get(5), hora: get(6),
-        dias: (() => { try { return JSON.parse(get(7)); } catch(e) { return []; } })()
-      };
-    }).filter(Boolean);
-    solicitudes = parsed;
-    saveStor();
-    setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes cargadas');
+    const data = await gasJSONP('obtener_solicitudes');
+    if (data.ok && Array.isArray(data.solicitudes)) {
+      solicitudes = data.solicitudes;
+      saveStor();
+      setSyncStatus('ok', '✅ ' + data.solicitudes.length + ' solicitudes cargadas');
+    } else {
+      setSyncStatus('err', '⚠️ ' + (data.error || 'Error'));
+    }
   } catch(err) {
     setSyncStatus('err', '❌ ' + err.message);
     console.warn('Error solicitudes:', err);
