@@ -1081,6 +1081,10 @@ function clearAll(){
 function showToast(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 
 // ══ INIT ══
+// Asegurar que todos tengan el Drive ID del menú
+if (!localStorage.getItem('tt_drive_id')) {
+  localStorage.setItem('tt_drive_id', '1vsymaauMu214D9DRpbAdHHHZ9_HtlUQJ');
+}
 loadStor();
 if(DATES.length>0){menuLoaded=true;setBanner('ok','📋 Menú '+menuMes+' · actualizando...');checkStart();}
 cargarMenuRemoto();
