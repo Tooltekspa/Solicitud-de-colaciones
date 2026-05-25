@@ -463,13 +463,11 @@ onkeydown="if(event.key==='Enter')checkPass()">
 </div>
 <div class="admin-acts">
 <button class="abtn ao" onclick="document.getElementById('fileInput').click()">📂 Cargar Minuta Excel</button>
-<button class="abtn as" onclick="document.getElementById('menuJsonInput').click()">📋 Cargar menu.json</button>
 <button class="abtn ap" onclick="exportExcel()">⬇ Exportar Solicitudes</button>
 <button class="abtn ad" onclick="clearAll()">🗑 Limpiar datos</button>
 <button class="abtn ag" onclick="adminLogout()">🔒 Cerrar sesión</button>
 <span id="syncStatus" class="sync-status" style="display:none"></span>
 <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="loadExcel(event)">
-<input type="file" id="menuJsonInput" accept=".json" onchange="loadMenuJson(event)" style="display:none">
 </div>
 </div>
 
@@ -810,8 +808,6 @@ function showUploadSuccess(fileName,nDias,mes){
   saveMenuLocal();
   renderMenuPreview();
   guardarMenuRemoto();
-  // Descargar menu.json automáticamente para subir a GitHub
-  setTimeout(()=>descargarMenuJson(), 800);
 }
 
 function descargarMenuJson(){
