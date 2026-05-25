@@ -396,8 +396,9 @@ footer span{color:var(--azul3)}
       </div>
       <div class="abtn-row">
         <button class="abtn ao" onclick="document.getElementById('fileInput').click()">📂 Cargar Minuta Excel</button>
-        <button class="abtn ap" onclick="exportExcel()">⬇ Exportar Solicitudes</button>
-        <button class="abtn as" onclick="window.open('https://docs.google.com/spreadsheets/d/1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98','_blank')">📊 Ver en Sheets</button>
+        <button class="abtn ap" onclick="exportExcel()">⬇ Exportar</button>
+        <button class="abtn as" onclick="window.open('https://docs.google.com/spreadsheets/d/'+SHEET_ID_FORM,'_blank')">📊 Ver en Sheets</button>
+        <button class="abtn ao" onclick="cambiarHoja()">🔗 Cambiar hoja</button>
         <button class="abtn ad" onclick="clearAll()">🗑 Limpiar</button>
         <button class="abtn ag" onclick="adminLogout()">🔒 Salir</button>
         <span id="syncStatus" class="sync-st" style="display:none"></span>
@@ -490,23 +491,19 @@ function setLabel(label) {
 //  CARGAR MENÚ
 // ══════════════════════════════════════════════════════
 async function cargarMenuRemoto() {
-  // Intentar cargar desde Drive (archivo público guardado por Apps Script)
-  const fileId = localStorage.getItem('tt_drive_id');
-  if (fileId) {
-    try {
-      const url = 'https://drive.google.com/uc?export=download&id=' + fileId + '&t=' + Date.now();
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        if (aplicarMenu(data)) {
-          saveMenu();
-          const upd = data.updated ? ' · ' + new Date(data.updated).toLocaleDateString('es-CL') : '';
-          setBanner('ok', '✅ Menú ' + menuMes + ' cargado' + upd);
-          menuLoaded = true; checkStart(); return;
-        }
+  // Leer menu.json desde GitHub Pages (mismo dominio = sin CORS)
+  try {
+    const res = await fetch('./menu.json?t=' + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      if (aplicarMenu(data)) {
+        saveMenu();
+        const upd = data.updated ? ' · ' + new Date(data.updated).toLocaleDateString('es-CL') : '';
+        setBanner('ok', '✅ Menú ' + menuMes + ' cargado' + upd);
+        menuLoaded = true; checkStart(); return;
       }
-    } catch(e) { console.warn('Drive error:', e.message); }
-  }
+    }
+  } catch(e) { console.warn('menu.json:', e.message); }
   // Fallback: localStorage
   if (DATES.length > 0) {
     setBanner('ok', '📋 Menú ' + menuMes + ' (local)');
@@ -551,47 +548,107 @@ function gasJSONP(action) {
   });
 }
 
+// ══ CARGAR SOLICITUDES desde Google Form Sheet (Visualization API) ══
+// Formato columnas: Marca temporal | Email | Nombre | Día1 | Día2 | ...
+let SHEET_ID_FORM = localStorage.getItem('tt_form_sheet') || '1ERFJTFggI2Yhhewv5O6pOt18C3eQvJw5-os3yWghAsg'; // ← Cambiar cada mes
+let formCols = []; // headers de columnas (días)
+
 async function cargarSolicitudesRemotas() {
   loadStor();
+  setSyncStatus('syncing', '☁️ Cargando solicitudes...');
   try {
-    setSyncStatus('syncing', '☁️ Cargando...');
-    const data = await gasJSONP('obtener_solicitudes');
-    if (data.ok && Array.isArray(data.solicitudes)) {
-      solicitudes = data.solicitudes;
-      saveSol();
-      setSyncStatus('ok', '✅ ' + data.solicitudes.length + ' solicitudes');
-    } else {
-      setSyncStatus('err', '⚠️ ' + (data.error || 'Error'));
-    }
+    const data = await sheetsViz('Respuestas de formulario 1', SHEET_ID_FORM);
+    const cols  = (data && data.table && data.table.cols) || [];
+    const rows  = (data && data.table && data.table.rows) || [];
+    if (!rows.length) { setSyncStatus('ok', '✅ Sin solicitudes aún'); return; }
+
+    // Extraer headers de días (col 3 en adelante)
+    formCols = cols.slice(3).map(c => c.label || '');
+
+    const parsed = rows.map((row, ri) => {
+      const c = row.c || [];
+      const g = i => (c[i] && c[i].v != null) ? String(c[i].v) : '';
+      if (!g(2)) return null; // sin nombre
+      // Construir días desde las columnas de días
+      const dias = formCols.map((colLabel, i) => {
+        const val = g(i + 3).trim();
+        const ausente = !val || val.toLowerCase().includes('ausencia') || val === '';
+        return {
+          fecha: colLabel,
+          fechaLabel: colLabel,
+          fechaFull: colLabel,
+          tipo: ausente ? 'AUS' : 'A',
+          ausente,
+          fondo: ausente ? 'Ausencia' : val,
+          ens: '',
+          pos: ''
+        };
+      });
+      return {
+        id: ri + 1,
+        nombre: g(2),
+        email: g(1),
+        area: '',
+        mes: menuMes,
+        fecha_reg: g(0),
+        hora: '',
+        dias
+      };
+    }).filter(Boolean);
+
+    solicitudes = parsed;
+    saveSol();
+    setSyncStatus('ok', '✅ ' + parsed.length + ' personas registradas');
   } catch(err) {
     setSyncStatus('err', '❌ ' + err.message);
     console.warn('Solicitudes error:', err);
   }
 }
 
+function sheetsViz(sheetName, sheetId) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
+    function cleanup() {
+      clearTimeout(timer);
+      if (script.parentNode) script.remove();
+      if (window.google && window.google.visualization && window.google.visualization.Query)
+        window.google.visualization.Query.setResponse = null;
+    }
+    if (!window.google) window.google = {};
+    if (!window.google.visualization) window.google.visualization = {};
+    if (!window.google.visualization.Query) window.google.visualization.Query = {};
+    window.google.visualization.Query.setResponse = (data) => {
+      cleanup();
+      if (data && data.status === 'ok') resolve(data);
+      else reject(new Error('Sheets error'));
+    };
+    const id = sheetId || SHEET_ID_FORM;
+    script.src = 'https://docs.google.com/spreadsheets/d/' + id +
+      '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName) + '&t=' + Date.now();
+    script.onerror = () => { cleanup(); reject(new Error('No se pudo cargar la hoja')); };
+    document.head.appendChild(script);
+  });
+}
+
 // ══════════════════════════════════════════════════════
 //  GUARDAR MENÚ (POST no-cors → Apps Script → Drive)
 // ══════════════════════════════════════════════════════
 function guardarMenuRemoto() {
-  setSyncStatus('syncing', '☁️ Publicando...');
-  fetch(WEBHOOK_URL, {
-    method: 'POST', mode: 'no-cors',
-    body: JSON.stringify({action:'guardar_menu',menu:MENU,dates:DATES,mes:menuMes,updatedBy:'Admin'})
+  // Generar y descargar menu.json para subir a GitHub
+  const json = JSON.stringify({menu:MENU,dates:DATES,mes:menuMes,updated:new Date().toISOString()}, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'menu.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  setSyncStatus('ok', '✅ menu.json descargado');
+  showToast('📥 Sube el menu.json a GitHub → repositorio → Add file → Upload', 7000);
+  // También enviar a Apps Script para los correos
+  fetch(WEBHOOK_URL, {method:'POST',mode:'no-cors',
+    body:JSON.stringify({action:'guardar_menu',menu:MENU,dates:DATES,mes:menuMes,updatedBy:'Admin'})
   }).catch(()=>{});
-  // Obtener fileId del Drive via JSONP (3s después para dar tiempo al script)
-  setTimeout(() => {
-    gasJSONP('menu_url').then(r => {
-      if (r.ok && r.url) {
-        const m = r.url.match(/id=([^&]+)/);
-        if (m) { localStorage.setItem('tt_drive_id', m[1]); }
-        setSyncStatus('ok', '✅ Menú publicado para todos');
-        showToast('✅ Menú guardado — todos los empleados lo verán ahora');
-      }
-    }).catch(() => {
-      setSyncStatus('ok', '✅ Menú guardado');
-      showToast('✅ Menú guardado');
-    });
-  }, 3000);
 }
 
 function setSyncStatus(type, msg) {
@@ -670,9 +727,36 @@ function checkStart() {
   const e = document.getElementById('empEmail').value.trim();
   const a = document.getElementById('empArea').value;
   document.getElementById('btnStart').disabled = !(n && e && a && menuLoaded && DATES.length > 0);
+  // Limpiar advertencia de duplicado si cambian los datos
+  const warn = document.getElementById('dupWarn');
+  if (warn) warn.style.display = 'none';
 }
 
-function startSlides() { curIdx = 0; _tmp = {tipo:null,ens:null,pos:null}; showStep('step-slides'); renderSlide(); }
+function startSlides() {
+  const nombre = document.getElementById('empNombre').value.trim();
+  const email  = document.getElementById('empEmail').value.trim();
+  // Verificar si ya existe solicitud para este mes con mismo nombre o correo
+  const yaExiste = solicitudes.some(s =>
+    s.mes === menuMes &&
+    (s.email.toLowerCase() === email.toLowerCase() ||
+     s.nombre.toLowerCase() === nombre.toLowerCase())
+  );
+  if (yaExiste) {
+    // Mostrar advertencia en el formulario
+    let warn = document.getElementById('dupWarn');
+    if (!warn) {
+      warn = document.createElement('div');
+      warn.id = 'dupWarn';
+      warn.style.cssText = 'background:rgba(217,64,64,.07);border:1.5px solid rgba(217,64,64,.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:var(--red);line-height:1.6;text-align:left';
+      document.getElementById('btnStart').parentNode.insertBefore(warn, document.getElementById('btnStart'));
+    }
+    warn.style.display = 'block';
+    warn.innerHTML = `⚠️ <strong>${nombre}</strong> ya tiene una solicitud registrada para <strong>${menuMes}</strong>.<br>Si necesitas modificarla, contacta al administrador.`;
+    return;
+  }
+  curIdx = 0; _tmp = {tipo:null,ens:null,pos:null};
+  showStep('step-slides'); renderSlide();
+}
 
 // ══════════════════════════════════════════════════════
 //  SLIDES
@@ -1018,17 +1102,20 @@ function renderMenuPreview() {
 function renderAdmin() { renderStats(); renderTable(); renderResumen(); }
 
 function renderStats() {
-  const el=document.getElementById('statsGrid');
-  const solMes=solicitudes.filter(s=>s.mes===menuMes);
-  if(!solMes.length){el.style.display='none';return;}
-  el.style.display='grid';
-  document.getElementById('sPer').textContent=solMes.length;
-  let tot=0,a=0,b=0,h=0,v=0,l=0,aus=0;
-  solMes.forEach(p=>p.dias.forEach(d=>{if(d.ausente)aus++;else{tot++;if(d.tipo==='A')a++;else if(d.tipo==='B')b++;else if(d.tipo==='H')h++;else if(d.tipo==='V')v++;else if(d.tipo==='L')l++;}}));
-  document.getElementById('sTot').textContent=tot;document.getElementById('sA').textContent=a;
-  document.getElementById('sB').textContent=b;document.getElementById('sH').textContent=h;
-  document.getElementById('sV').textContent=v;document.getElementById('sL').textContent=l;
-  document.getElementById('sAus').textContent=aus;
+  const el = document.getElementById('statsGrid');
+  const solMes = solicitudes.filter(s => s.mes === menuMes);
+  if (!solMes.length) { el.style.display='none'; return; }
+  el.style.display = 'grid';
+  document.getElementById('sPer').textContent = solMes.length;
+  let tot=0, aus=0;
+  solMes.forEach(p => p.dias.forEach(d => { if(d.ausente) aus++; else tot++; }));
+  document.getElementById('sTot').textContent = tot;
+  document.getElementById('sAus').textContent = aus;
+  // Ocultar stats que no aplican al Form
+  ['sA','sB','sH','sV','sL'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.closest('.sc').style.display = 'none';
+  });
 }
 
 function renderTable() {
@@ -1036,11 +1123,15 @@ function renderTable() {
   const solMes=solicitudes.filter(s=>s.mes===menuMes);
   if(!solMes.length){tw.style.display='none';return;}
   tw.style.display='block';
-  const areas=[...new Set(solMes.map(p=>p.area))];
-  fr.innerHTML='<button class="flt'+(adminFilter==='all'?' on':'')+'" onclick="setFlt(\'all\')">Todos ('+solMes.length+')</button>'+areas.map(a=>`<button class="flt${adminFilter===a?' on':''}" onclick="setFlt('${a}')">${a}</button>`).join('');
-  const fil=adminFilter==='all'?solMes:solMes.filter(p=>p.area===adminFilter);
-  if(!fil.length){tb.innerHTML='<div class="empty"><div class="bi">📭</div><p>Sin resultados</p></div>';return;}
-  tb.innerHTML=`<table><thead><tr><th>Nombre</th><th>Email</th><th>Área</th><th>Fecha</th><th>Días</th><th>Aus.</th></tr></thead><tbody>${fil.map(p=>{const sel=p.dias.filter(d=>!d.ausente).length;const aus=p.dias.filter(d=>d.ausente).length;return`<tr><td>${p.nombre}</td><td style="font-size:.74rem;color:var(--mut)">${p.email}</td><td>${p.area}</td><td style="font-size:.74rem;color:var(--mut)">${p.fecha_reg}</td><td><span class="pillc">${sel}</span></td><td><span class="pillc" style="background:rgba(217,64,64,.08);color:var(--red);border-color:rgba(217,64,64,.2)">${aus}</span></td></tr>`;}).join('')}</tbody></table>`;
+  fr.innerHTML='<span style="font-size:.75rem;color:var(--mut);font-weight:600">'+solMes.length+' personas registradas</span>';
+  // Tabla: Nombre | Email | Fecha registro | Total días | Ausencias
+  tb.innerHTML=`<table><thead><tr><th>Nombre</th><th>Email</th><th>Fecha reg.</th><th>Días col.</th><th>Ausencias</th></tr></thead><tbody>${
+    solMes.map(p=>{
+      const sel=p.dias.filter(d=>!d.ausente).length;
+      const aus=p.dias.filter(d=>d.ausente).length;
+      return`<tr><td><strong>${p.nombre}</strong></td><td style="font-size:.74rem;color:var(--mut)">${p.email}</td><td style="font-size:.74rem;color:var(--mut)">${p.fecha_reg}</td><td><span class="pillc">${sel}</span></td><td><span class="pillc" style="background:rgba(217,64,64,.08);color:var(--red);border-color:rgba(217,64,64,.2)">${aus}</span></td></tr>`;
+    }).join('')
+  }</tbody></table>`;
 }
 
 function setFlt(f){adminFilter=f;renderTable();}
@@ -1048,17 +1139,31 @@ function setFlt(f){adminFilter=f;renderTable();}
 function renderResumen() {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
   const solMes=solicitudes.filter(s=>s.mes===menuMes);
-  if(!solMes.length||!DATES.length){rs.style.display='none';return;}
+  if(!solMes.length||!formCols.length){rs.style.display='none';return;}
   rs.style.display='block';
-  const byDay={};
-  DATES.forEach(dk=>{byDay[dk]={A:[],B:[],H:[],V:[],L:[],AUS:[]};});
-  solMes.forEach(p=>p.dias.forEach(d=>{if(byDay[d.fecha]){if(d.ausente)byDay[d.fecha].AUS.push(p.nombre);else if(byDay[d.fecha][d.tipo])byDay[d.fecha][d.tipo].push(p.nombre);}}));
-  rg.innerHTML=DATES.map(dk=>{
-    const d=MENU[dk],b=byDay[dk];
-    const filas=[['A','Plato A',d.A],['B','Plato B',d.B],['H','Hipocalórico',d.H],['V','Vegetariano',d.V],['L','Liviano',d.L||'']].filter(([t,,p])=>p&&b[t]&&b[t].length);
-    const total=filas.reduce((s,[t])=>s+b[t].length,0);
-    if(!total&&!b.AUS.length)return'';
-    return`<div class="rc2"><table><thead><tr><th>${d.label} — ${d.full}</th><th></th><th class="col-num" style="text-align:right;padding-right:14px">Pedidos</th></tr></thead><tbody>${filas.map(([t,lbl,plato])=>`<tr class="${t==='H'?'row-hipo':''}"><td class="col-tipo">${lbl}</td><td>${plato}</td><td class="col-num">${b[t].length}</td></tr>`).join('')}${b.AUS.length?`<tr class="row-aus"><td class="col-tipo">Ausencia</td><td>—</td><td class="col-num">${b.AUS.length}</td></tr>`:''}</tbody></table><div class="rc2-tot"><table><tbody><tr><td class="col-tipo"></td><td>Total colaciones</td><td class="col-num">${total}</td></tr></tbody></table></div></div>`;
+
+  // Por cada día, contar cuántos pidieron cada plato
+  rg.innerHTML = formCols.map((colLabel, ci) => {
+    const conteo = {};
+    let ausencias = 0;
+    solMes.forEach(p => {
+      const d = p.dias[ci];
+      if (!d) return;
+      if (d.ausente) { ausencias++; return; }
+      const plato = d.fondo || 'Sin especificar';
+      conteo[plato] = (conteo[plato] || 0) + 1;
+    });
+    const filas = Object.entries(conteo).sort((a,b)=>b[1]-a[1]);
+    const total = filas.reduce((s,[,n])=>s+n, 0);
+    if (!total && !ausencias) return '';
+    return `<div class="rc2">
+      <table><thead><tr><th colspan="2">${colLabel}</th><th class="col-num" style="text-align:right;padding-right:14px">Cant.</th></tr></thead>
+      <tbody>
+        ${filas.map(([plato,n])=>`<tr><td colspan="2" style="font-size:.78rem">${plato}</td><td class="col-num">${n}</td></tr>`).join('')}
+        ${ausencias?`<tr class="row-aus"><td colspan="2" style="font-style:italic;color:var(--mut)">Ausencia</td><td class="col-num">${ausencias}</td></tr>`:''}
+      </tbody></table>
+      <div class="rc2-tot"><table><tbody><tr><td colspan="2">Total colaciones</td><td class="col-num">${total}</td></tr></tbody></table></div>
+    </div>`;
   }).join('');
 }
 
@@ -1078,16 +1183,29 @@ function clearAll(){
   renderAdmin();showToast('Solicitudes eliminadas');
 }
 
+function cambiarHoja(){
+  const id = prompt('Pega el ID de la Google Sheet del Form de este mes:\n(Lo encuentras en la URL: docs.google.com/spreadsheets/d/[ID]/edit)', SHEET_ID_FORM);
+  if(id && id.trim()){
+    SHEET_ID_FORM = id.trim();
+    localStorage.setItem('tt_form_sheet', SHEET_ID_FORM);
+    showToast('✅ Hoja actualizada — recargando solicitudes...');
+    cargarSolicitudesRemotas().then(()=>renderAdmin());
+  }
+}
+
 function showToast(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 
 // ══ INIT ══
-// Asegurar que todos tengan el Drive ID del menú
-if (!localStorage.getItem('tt_drive_id')) {
-  localStorage.setItem('tt_drive_id', '1vsymaauMu214D9DRpbAdHHHZ9_HtlUQJ');
-}
 loadStor();
 if(DATES.length>0){menuLoaded=true;setBanner('ok','📋 Menú '+menuMes+' · actualizando...');checkStart();}
 cargarMenuRemoto();
+// Cargar solicitudes en segundo plano para verificar duplicados
+gasJSONP('obtener_solicitudes').then(data => {
+  if (data.ok && Array.isArray(data.solicitudes)) {
+    solicitudes = data.solicitudes;
+    saveSol();
+  }
+}).catch(() => {});
 </script>
 </body>
 </html>
