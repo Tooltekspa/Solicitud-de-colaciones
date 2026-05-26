@@ -408,6 +408,7 @@ footer span{color:var(--azul3)}
       </div>
       <div class="abtn-row">
         <button class="abtn ao" onclick="document.getElementById('fileInput').click()">📂 Cargar Minuta Excel</button>
+        <button class="abtn ap" id="btnCrearForm" onclick="crearFormAdmin()">📝 Crear Formulario</button>
         <button class="abtn ap" onclick="exportExcel()">⬇ Exportar</button>
         <button class="abtn as" onclick="window.open('https://docs.google.com/spreadsheets/d/1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98','_blank')">📊 Ver en Sheets</button>
         <button class="abtn ad" onclick="clearAll()">🗑 Limpiar</button>
@@ -1236,12 +1237,50 @@ function clearAll(){
   renderAdmin();showToast('Solicitudes eliminadas');
 }
 
+function crearFormAdmin() {
+  if (!DATES.length) { showToast('⚠️ Primero carga el Excel del mes'); return; }
+  const btn = document.getElementById('btnCrearForm');
+  btn.textContent = '⏳ Creando...'; btn.disabled = true;
+  showToast('Creando formulario de ' + menuMes + '... puede tardar 20 segundos', 20000);
+  // Llamar al Apps Script via JSONP
+  gasJSONP('crear_formulario').then(r => {
+    btn.textContent = '📝 Crear Formulario'; btn.disabled = false;
+    if (r.ok && r.url) {
+      // Mostrar modal con el link
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(10,30,60,.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+      overlay.innerHTML = `<div style="background:#fff;border-radius:18px;padding:32px;width:100%;max-width:500px;text-align:center;box-shadow:0 24px 56px rgba(26,79,138,.25)">
+        <div style="font-size:2.5rem;margin-bottom:12px">✅</div>
+        <h2 style="font-family:Syne,sans-serif;font-weight:800;font-size:1.2rem;color:var(--azul);margin-bottom:8px">Formulario creado</h2>
+        <p style="font-size:.82rem;color:var(--mut);margin-bottom:20px">${menuMes} · ${r.dias} días hábiles<br>El link fue enviado a tu correo.</p>
+        <div style="background:var(--bg2);border:1px solid var(--pale);border-radius:10px;padding:14px;margin-bottom:16px;word-break:break-all">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:6px">Link para empleados</div>
+          <a href="${r.url}" target="_blank" style="font-size:.8rem;color:var(--azul2);text-decoration:none;font-weight:600">${r.url}</a>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="navigator.clipboard.writeText('${r.url}');this.textContent='✅ Copiado!';setTimeout(()=>this.textContent='📋 Copiar link',2000)"
+            style="flex:1;padding:11px;background:var(--azul);color:#fff;font-family:Syne,sans-serif;font-weight:800;font-size:.85rem;border:none;border-radius:9px;cursor:pointer">📋 Copiar link</button>
+          <button onclick="window.open('${r.url}','_blank')"
+            style="flex:1;padding:11px;background:transparent;color:var(--azul);border:1.5px solid var(--bor);font-family:Syne,sans-serif;font-weight:700;font-size:.85rem;border-radius:9px;cursor:pointer">🔗 Abrir Form</button>
+          <button onclick="this.closest('div[style]').remove()"
+            style="padding:11px 16px;background:transparent;color:var(--mut);border:1.5px solid var(--bor);font-family:DM Sans,sans-serif;font-weight:600;font-size:.82rem;border-radius:9px;cursor:pointer">Cerrar</button>
+        </div>
+      </div>`;
+      document.body.appendChild(overlay);
+    } else {
+      showToast('❌ Error: ' + (r.error || 'No se pudo crear el formulario'));
+    }
+  }).catch(err => {
+    btn.textContent = '📝 Crear Formulario'; btn.disabled = false;
+    showToast('❌ Error: ' + err.message);
+  });
+}
+
 function cambiarHoja(){
-  const id = prompt('Pega el ID de la Google Sheet del Form de este mes:\n(Lo encuentras en la URL: docs.google.com/spreadsheets/d/[ID]/edit)', SHEET_ID_FORM);
+  const id = prompt('Pega el ID de la Google Sheet del Form de este mes:', SHEET_ID_SOL);
   if(id && id.trim()){
-    SHEET_ID_FORM = id.trim();
-    localStorage.setItem('tt_form_sheet', SHEET_ID_FORM);
-    showToast('✅ Hoja actualizada — recargando solicitudes...');
+    localStorage.setItem('tt_form_sheet', id.trim());
+    showToast('✅ Hoja actualizada — recargando...');
     cargarSolicitudesRemotas().then(()=>renderAdmin());
   }
 }
