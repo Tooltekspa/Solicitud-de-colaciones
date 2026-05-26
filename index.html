@@ -257,6 +257,18 @@ tr:hover td{background:rgba(34,113,179,.025)}
 .rc2-tot td{padding:5px 12px;border:none;font-size:.8rem}
 .rc2-tot td.col-num{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;color:var(--grn)}
 footer{text-align:center;padding:22px;font-size:.7rem;color:var(--mut);border-top:1px solid var(--bor)}
+/* ── TABLA ESTILO SHEETS ── */
+.sheet-tbl-wrap{overflow-x:auto;max-height:520px;overflow-y:auto}
+.sheet-table{border-collapse:collapse;font-size:.75rem;width:100%}
+.sheet-table th{background:#4472c4;color:#fff;font-weight:700;padding:7px 12px;
+  text-align:left;border:1px solid #3561aa;white-space:nowrap;position:sticky;top:0;z-index:2}
+.sheet-table td{padding:6px 12px;border:1px solid #d0d7e3;vertical-align:middle}
+.sheet-table tr:nth-child(even) td{background:#f2f6fc}
+.sheet-table tr:hover td{background:#dce8f8}
+.sheet-table td.ausencia{color:#999;font-style:italic;text-align:center;background:#f8f8f8}
+.sheet-table td.col-plato{max-width:200px;white-space:normal;line-height:1.35}
+.sheet-table td.col-ts{color:#666;font-size:.71rem;white-space:nowrap}
+.sheet-table td.col-nombre{font-weight:700;color:var(--azul);white-space:nowrap}
 footer span{color:var(--azul3)}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);opacity:0;
   background:var(--azul);color:#fff;border-radius:9px;padding:10px 20px;font-size:.81rem;font-weight:600;
@@ -427,8 +439,11 @@ footer span{color:var(--azul3)}
       <div class="sc"><div class="sc-l">Ausencias</div><div class="sc-v" id="sAus">0</div></div>
     </div>
     <div class="tbl-wrap" id="tblWrap" style="display:none">
-      <div class="tbl-hdr"><h3>Solicitudes recibidas</h3><div class="flt-row" id="fltRow"></div></div>
-      <div id="tblBody"></div>
+      <div class="tbl-hdr">
+        <h3>Solicitudes recibidas</h3>
+        <div class="flt-row" id="fltRow"></div>
+      </div>
+      <div id="tblBody" style="overflow-x:auto"></div>
     </div>
     <div id="resSection" style="display:none">
       <div class="pill" style="margin-bottom:12px">Conteo por día</div>
@@ -585,28 +600,45 @@ async function cargarSolicitudesRemotas() {
 
 function sheetsViz(sheetName, sheetId) {
   return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 15000);
-    function cleanup() {
-      clearTimeout(timer);
-      if (script.parentNode) script.remove();
-      if (window.google && window.google.visualization && window.google.visualization.Query)
-        window.google.visualization.Query.setResponse = null;
-    }
-    if (!window.google) window.google = {};
-    if (!window.google.visualization) window.google.visualization = {};
-    if (!window.google.visualization.Query) window.google.visualization.Query = {};
-    window.google.visualization.Query.setResponse = (data) => {
-      cleanup();
-      if (data && data.status === 'ok') resolve(data);
-      else reject(new Error('Sheets error'));
-    };
     const id = sheetId || SHEET_ID_SOL;
-    script.src = 'https://docs.google.com/spreadsheets/d/' + id +
+    const url = 'https://docs.google.com/spreadsheets/d/' + id +
       '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName) + '&t=' + Date.now();
-    script.onerror = () => { cleanup(); reject(new Error('No se pudo cargar la hoja')); };
-    document.head.appendChild(script);
+    // Usar Image trick para bypass CSP — no, usar fetch con modo no-cors + workaround
+    // Mejor: usar el endpoint de exportación CSV que sí tiene CORS
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/' + id +
+      '/export?format=csv&sheet=' + encodeURIComponent(sheetName) + '&t=' + Date.now();
+    fetch(csvUrl)
+      .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+      .then(csv => {
+        // Parsear CSV manualmente
+        const lines = csv.trim().split('\n');
+        if (lines.length < 2) { resolve({table:{cols:[],rows:[]}}); return; }
+        const headers = parseCSVLine(lines[0]);
+        const cols = headers.map(h => ({label: h}));
+        const rows = lines.slice(1).map(line => {
+          const vals = parseCSVLine(line);
+          return { c: vals.map(v => ({v: v})) };
+        }).filter(r => r.c.some(c => c.v));
+        resolve({status:'ok', table:{cols, rows}});
+      })
+      .catch(reject);
   });
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur.trim()); cur = '';
+    } else cur += c;
+  }
+  result.push(cur.trim());
+  return result;
 }
 
 // ══════════════════════════════════════════════════════
@@ -1116,15 +1148,41 @@ function renderTable(solMes) {
   solMes = solMes || solicitudes.filter(s=>(s.mes||'').toLowerCase()===menuMes.toLowerCase());
   if(!solMes.length){tw.style.display='none';return;}
   tw.style.display='block';
-  fr.innerHTML='<span style="font-size:.75rem;color:var(--mut);font-weight:600">'+solMes.length+' personas registradas</span>';
-  // Tabla: Nombre | Email | Fecha registro | Total días | Ausencias
-  tb.innerHTML=`<table><thead><tr><th>Nombre</th><th>Email</th><th>Fecha reg.</th><th>Días col.</th><th>Ausencias</th></tr></thead><tbody>${
-    solMes.map(p=>{
-      const sel=p.dias.filter(d=>!d.ausente).length;
-      const aus=p.dias.filter(d=>d.ausente).length;
-      return`<tr><td><strong>${p.nombre}</strong></td><td style="font-size:.74rem;color:var(--mut)">${p.email}</td><td style="font-size:.74rem;color:var(--mut)">${p.fecha_reg}</td><td><span class="pillc">${sel}</span></td><td><span class="pillc" style="background:rgba(217,64,64,.08);color:var(--red);border-color:rgba(217,64,64,.2)">${aus}</span></td></tr>`;
-    }).join('')
-  }</tbody></table>`;
+  fr.innerHTML='<span style="font-size:.75rem;color:var(--mut);font-weight:600">'+solMes.length+' personas · '+menuMes+'</span>';
+
+  // Obtener todos los días únicos en orden
+  const diasMap = {};
+  solMes.forEach(p => (p.dias||[]).forEach(d => {
+    if (!d.ausente && !diasMap[d.fecha]) diasMap[d.fecha] = d.fechaLabel || d.fecha;
+  }));
+  // Usar DATES si está disponible, si no usar los del mapa
+  const diasOrden = DATES.length ? DATES.filter(dk => diasMap[dk] || solMes.some(p=>p.dias.find(d=>d.fecha===dk))) : Object.keys(diasMap).sort();
+
+  const headers = ['Marca temporal','Nombre'].concat(diasOrden.map(dk => {
+    const d = MENU[dk];
+    return d ? d.label + ' ' + dk : diasMap[dk] || dk;
+  }));
+
+  const rows = solMes.map(p => {
+    const cols = [p.fecha_reg + (p.hora?' '+p.hora:''), p.nombre];
+    diasOrden.forEach(dk => {
+      const dia = (p.dias||[]).find(d => d.fecha === dk);
+      if (!dia) { cols.push('—'); return; }
+      if (dia.ausente) { cols.push('AUSENCIA'); return; }
+      // Formato: Tipo · Plato (ensalada, postre)
+      const partes = [];
+      if (dia.fondo) partes.push(dia.fondo);
+      if (dia.ens && dia.ens !== '(incluida)') partes.push(dia.ens);
+      if (dia.pos) partes.push(dia.pos);
+      cols.push(partes.join(' · '));
+    });
+    return cols;
+  });
+
+  tb.innerHTML = `<div class="sheet-tbl-wrap"><table class="sheet-table">
+    <thead><tr>${headers.map((h,i)=>`<th class="${i===0?'col-ts':i===1?'col-nombre':'col-dia'}">${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(row=>`<tr>${row.map((c,i)=>`<td class="${i===0?'col-ts':i===1?'col-nombre':c==='AUSENCIA'?'ausencia':'col-plato'}">${c}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
 function setFlt(f){adminFilter=f;renderTable();}
