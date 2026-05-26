@@ -1077,11 +1077,18 @@ function renderMenuPreview() {
 // ══════════════════════════════════════════════════════
 //  ADMIN — RENDER
 // ══════════════════════════════════════════════════════
-function renderAdmin() { renderStats(); renderTable(); renderResumen(); }
+function renderAdmin() {
+  // Filtrar por mes ignorando mayúsculas/minúsculas
+  const mesLower = menuMes.toLowerCase();
+  const solMes = solicitudes.filter(s => s.mes && s.mes.toLowerCase() === mesLower);
+  renderStats(solMes);
+  renderTable(solMes);
+  renderResumen(solMes);
+}
 
-function renderStats() {
+function renderStats(solMes) {
   const el=document.getElementById('statsGrid');
-  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  solMes = solMes || solicitudes.filter(s=>(s.mes||'').toLowerCase()===menuMes.toLowerCase());
   if(!solMes.length){el.style.display='none';return;}
   el.style.display='grid';
   document.getElementById('sPer').textContent=solMes.length;
@@ -1104,9 +1111,9 @@ function renderStats() {
   });
 }
 
-function renderTable() {
+function renderTable(solMes) {
   const tw=document.getElementById('tblWrap'),tb=document.getElementById('tblBody'),fr=document.getElementById('fltRow');
-  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  solMes = solMes || solicitudes.filter(s=>(s.mes||'').toLowerCase()===menuMes.toLowerCase());
   if(!solMes.length){tw.style.display='none';return;}
   tw.style.display='block';
   fr.innerHTML='<span style="font-size:.75rem;color:var(--mut);font-weight:600">'+solMes.length+' personas registradas</span>';
@@ -1122,9 +1129,9 @@ function renderTable() {
 
 function setFlt(f){adminFilter=f;renderTable();}
 
-function renderResumen() {
+function renderResumen(solMes) {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
-  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  solMes = solMes || solicitudes.filter(s=>(s.mes||'').toLowerCase()===menuMes.toLowerCase());
   if(!solMes.length||!DATES.length){rs.style.display='none';return;}
   rs.style.display='block';
 
