@@ -397,8 +397,7 @@ footer span{color:var(--azul3)}
       <div class="abtn-row">
         <button class="abtn ao" onclick="document.getElementById('fileInput').click()">📂 Cargar Minuta Excel</button>
         <button class="abtn ap" onclick="exportExcel()">⬇ Exportar</button>
-        <button class="abtn as" onclick="window.open('https://docs.google.com/spreadsheets/d/'+SHEET_ID_FORM,'_blank')">📊 Ver en Sheets</button>
-        <button class="abtn ao" onclick="cambiarHoja()">🔗 Cambiar hoja</button>
+        <button class="abtn as" onclick="window.open('https://docs.google.com/spreadsheets/d/1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98','_blank')">📊 Ver en Sheets</button>
         <button class="abtn ad" onclick="clearAll()">🗑 Limpiar</button>
         <button class="abtn ag" onclick="adminLogout()">🔒 Salir</button>
         <span id="syncStatus" class="sync-st" style="display:none"></span>
@@ -548,57 +547,36 @@ function gasJSONP(action) {
   });
 }
 
-// ══ CARGAR SOLICITUDES desde Google Form Sheet (Visualization API) ══
-// Formato columnas: Marca temporal | Email | Nombre | Día1 | Día2 | ...
-let SHEET_ID_FORM = localStorage.getItem('tt_form_sheet') || '1ERFJTFggI2Yhhewv5O6pOt18C3eQvJw5-os3yWghAsg'; // ← Cambiar cada mes
-let formCols = []; // headers de columnas (días)
+// ══ CARGAR SOLICITUDES desde Google Sheets (hoja solicitudes del Apps Script) ══
+const SHEET_ID_SOL = '1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98';
+let formCols = [];
 
 async function cargarSolicitudesRemotas() {
   loadStor();
   setSyncStatus('syncing', '☁️ Cargando solicitudes...');
   try {
-    const data = await sheetsViz('Respuestas de formulario 1', SHEET_ID_FORM);
-    const cols  = (data && data.table && data.table.cols) || [];
-    const rows  = (data && data.table && data.table.rows) || [];
+    const data = await sheetsViz('solicitudes', SHEET_ID_SOL);
+    const rows = (data && data.table && data.table.rows) || [];
     if (!rows.length) { setSyncStatus('ok', '✅ Sin solicitudes aún'); return; }
-
-    // Extraer headers de días (col 3 en adelante)
-    formCols = cols.slice(3).map(c => c.label || '');
-
-    const parsed = rows.map((row, ri) => {
+    // Columnas: ID | Nombre | Email | Área | Mes | Fecha Registro | Hora | Detalle JSON
+    const parsed = rows.map(row => {
       const c = row.c || [];
       const g = i => (c[i] && c[i].v != null) ? String(c[i].v) : '';
-      if (!g(2)) return null; // sin nombre
-      // Construir días desde las columnas de días
-      const dias = formCols.map((colLabel, i) => {
-        const val = g(i + 3).trim();
-        const ausente = !val || val.toLowerCase().includes('ausencia') || val === '';
-        return {
-          fecha: colLabel,
-          fechaLabel: colLabel,
-          fechaFull: colLabel,
-          tipo: ausente ? 'AUS' : 'A',
-          ausente,
-          fondo: ausente ? 'Ausencia' : val,
-          ens: '',
-          pos: ''
-        };
-      });
+      if (!g(0)) return null;
+      let dias = [];
+      try { dias = JSON.parse(g(7)); } catch(e) {}
+      // Construir formCols desde los días si está vacío
+      if (!formCols.length && dias.length) {
+        formCols = dias.map(d => d.fechaLabel || d.fecha);
+      }
       return {
-        id: ri + 1,
-        nombre: g(2),
-        email: g(1),
-        area: '',
-        mes: menuMes,
-        fecha_reg: g(0),
-        hora: '',
-        dias
+        id: g(0), nombre: g(1), email: g(2), area: g(3),
+        mes: g(4), fecha_reg: g(5), hora: g(6), dias
       };
     }).filter(Boolean);
-
     solicitudes = parsed;
     saveSol();
-    setSyncStatus('ok', '✅ ' + parsed.length + ' personas registradas');
+    setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes cargadas');
   } catch(err) {
     setSyncStatus('err', '❌ ' + err.message);
     console.warn('Solicitudes error:', err);
@@ -623,7 +601,7 @@ function sheetsViz(sheetName, sheetId) {
       if (data && data.status === 'ok') resolve(data);
       else reject(new Error('Sheets error'));
     };
-    const id = sheetId || SHEET_ID_FORM;
+    const id = sheetId || SHEET_ID_SOL;
     script.src = 'https://docs.google.com/spreadsheets/d/' + id +
       '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName) + '&t=' + Date.now();
     script.onerror = () => { cleanup(); reject(new Error('No se pudo cargar la hoja')); };
@@ -1102,19 +1080,27 @@ function renderMenuPreview() {
 function renderAdmin() { renderStats(); renderTable(); renderResumen(); }
 
 function renderStats() {
-  const el = document.getElementById('statsGrid');
-  const solMes = solicitudes.filter(s => s.mes === menuMes);
-  if (!solMes.length) { el.style.display='none'; return; }
-  el.style.display = 'grid';
-  document.getElementById('sPer').textContent = solMes.length;
-  let tot=0, aus=0;
-  solMes.forEach(p => p.dias.forEach(d => { if(d.ausente) aus++; else tot++; }));
-  document.getElementById('sTot').textContent = tot;
-  document.getElementById('sAus').textContent = aus;
-  // Ocultar stats que no aplican al Form
-  ['sA','sB','sH','sV','sL'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.closest('.sc').style.display = 'none';
+  const el=document.getElementById('statsGrid');
+  const solMes=solicitudes.filter(s=>s.mes===menuMes);
+  if(!solMes.length){el.style.display='none';return;}
+  el.style.display='grid';
+  document.getElementById('sPer').textContent=solMes.length;
+  let tot=0,a=0,b=0,h=0,v=0,l=0,aus=0;
+  solMes.forEach(p=>p.dias.forEach(d=>{
+    if(d.ausente)aus++;
+    else{tot++;if(d.tipo==='A')a++;else if(d.tipo==='B')b++;else if(d.tipo==='H')h++;else if(d.tipo==='V')v++;else if(d.tipo==='L')l++;}
+  }));
+  document.getElementById('sTot').textContent=tot;
+  document.getElementById('sA').textContent=a;
+  document.getElementById('sB').textContent=b;
+  document.getElementById('sH').textContent=h;
+  document.getElementById('sV').textContent=v;
+  document.getElementById('sL').textContent=l;
+  document.getElementById('sAus').textContent=aus;
+  // Mostrar todos los stats
+  ['sA','sB','sH','sV','sL'].forEach(id=>{
+    const sc=document.getElementById(id);
+    if(sc)sc.closest('.sc').style.display='block';
   });
 }
 
@@ -1139,28 +1125,30 @@ function setFlt(f){adminFilter=f;renderTable();}
 function renderResumen() {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
   const solMes=solicitudes.filter(s=>s.mes===menuMes);
-  if(!solMes.length||!formCols.length){rs.style.display='none';return;}
+  if(!solMes.length||!DATES.length){rs.style.display='none';return;}
   rs.style.display='block';
 
-  // Por cada día, contar cuántos pidieron cada plato
-  rg.innerHTML = formCols.map((colLabel, ci) => {
-    const conteo = {};
-    let ausencias = 0;
+  rg.innerHTML = DATES.map(dk => {
+    const d = MENU[dk];
+    const byTipo = {A:[],B:[],H:[],V:[],L:[],AUS:[]};
     solMes.forEach(p => {
-      const d = p.dias[ci];
-      if (!d) return;
-      if (d.ausente) { ausencias++; return; }
-      const plato = d.fondo || 'Sin especificar';
-      conteo[plato] = (conteo[plato] || 0) + 1;
+      const dia = p.dias.find(x => x.fecha === dk);
+      if (!dia) return;
+      if (dia.ausente) byTipo.AUS.push(p.nombre);
+      else if (byTipo[dia.tipo]) byTipo[dia.tipo].push(p.nombre);
     });
-    const filas = Object.entries(conteo).sort((a,b)=>b[1]-a[1]);
-    const total = filas.reduce((s,[,n])=>s+n, 0);
-    if (!total && !ausencias) return '';
+    const filas = [
+      ['A','Plato A', d.A],['B','Plato B', d.B],
+      ['H','Hipocalórico', d.H],['V','Vegetariano', d.V],
+      ['L','Liviano', d.L||'']
+    ].filter(([t,,p]) => p && byTipo[t].length);
+    const total = filas.reduce((s,[t]) => s+byTipo[t].length, 0);
+    if (!total && !byTipo.AUS.length) return '';
     return `<div class="rc2">
-      <table><thead><tr><th colspan="2">${colLabel}</th><th class="col-num" style="text-align:right;padding-right:14px">Cant.</th></tr></thead>
+      <table><thead><tr><th colspan="2">${d.label} — ${d.full}</th><th class="col-num" style="text-align:right;padding-right:14px">Cant.</th></tr></thead>
       <tbody>
-        ${filas.map(([plato,n])=>`<tr><td colspan="2" style="font-size:.78rem">${plato}</td><td class="col-num">${n}</td></tr>`).join('')}
-        ${ausencias?`<tr class="row-aus"><td colspan="2" style="font-style:italic;color:var(--mut)">Ausencia</td><td class="col-num">${ausencias}</td></tr>`:''}
+        ${filas.map(([t,lbl,plato])=>`<tr class="${t==='H'?'row-hipo':''}"><td class="col-tipo">${lbl}</td><td style="font-size:.78rem">${plato}</td><td class="col-num">${byTipo[t].length}</td></tr>`).join('')}
+        ${byTipo.AUS.length?`<tr class="row-aus"><td class="col-tipo">Ausencia</td><td>—</td><td class="col-num">${byTipo.AUS.length}</td></tr>`:''}
       </tbody></table>
       <div class="rc2-tot"><table><tbody><tr><td colspan="2">Total colaciones</td><td class="col-num">${total}</td></tr></tbody></table></div>
     </div>`;
