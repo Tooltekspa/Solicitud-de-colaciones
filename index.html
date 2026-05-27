@@ -232,7 +232,7 @@ tr:hover td{background:rgba(34,113,179,.025)}
   border-radius:100px;font-size:.71rem;font-weight:700;background:var(--bg2);color:var(--azul);padding:0 6px;border:1px solid var(--pale)}
 .empty{padding:36px 20px;text-align:center;color:var(--mut)}
 .empty .bi{font-size:1.9rem;margin-bottom:7px}.empty p{font-size:.81rem}
-.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-items:start}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px;align-items:start}
 .rc2{background:var(--sur);border:1px solid var(--bor);border-radius:12px;overflow:hidden}
 .rc2 table th{background:#f5c518;color:#000;font-weight:800;font-size:.71rem;padding:8px 12px;text-align:left;border-bottom:2px solid #d4a800}
 .rc2 table td{padding:7px 12px;border-bottom:1px solid rgba(204,220,238,.35);font-size:.8rem}
@@ -244,6 +244,25 @@ tr:hover td{background:rgba(34,113,179,.025)}
 .rc2-tot{border-top:2px solid #f5c518;background:#fff;padding:4px 0}
 .rc2-tot td{padding:5px 12px;border:none;font-size:.8rem}
 .rc2-tot td.col-num{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;color:var(--grn)}
+/* ── CONTEO POR DÍA — estilo Excel ── */
+.rc3{background:var(--sur);border:1px solid #bbb;border-radius:4px;overflow:hidden;font-family:'DM Sans',sans-serif;font-size:.78rem;}
+.rc3 table{width:100%;border-collapse:collapse;}
+.rc3 thead tr th{background:#f5c518;color:#000;font-weight:800;padding:7px 10px;border:1px solid #d4a800;text-align:left;}
+.rc3 th.rh-tipo{width:90px;}
+.rc3 th.rh-num{width:60px;text-align:right;}
+.rc3 th.rh-desc{text-align:center;}
+.rc3 tbody tr td{padding:5px 10px;border:1px solid #d0d7e3;vertical-align:middle;}
+.rc3 tbody tr:nth-child(even) td{background:#f2f6fc;}
+.rc3 tbody tr:hover td{background:#dce8f8;}
+.rc3 td.rtipo{color:#555;font-size:.72rem;font-weight:600;text-transform:capitalize;white-space:nowrap;}
+.rc3 td.rdesc{color:var(--txt);}
+.rc3 td.rnum{text-align:right;font-family:'Syne',sans-serif;font-weight:800;color:#1b9e6e;font-size:.85rem;}
+.rc3 tr.rhipo td{background:#fff8dc;font-weight:700;color:#7a5c00;}
+.rc3 tr.rhipo td.rtipo{color:#7a5c00;}
+.rc3 tr.raus td{color:#999;font-style:italic;}
+.rc3 tfoot tr.rtot td{padding:5px 10px;border-top:2px solid #f5c518;border-left:1px solid #d0d7e3;border-right:1px solid #d0d7e3;background:#fff;font-weight:700;color:var(--txt);}
+.rc3 tfoot tr.rtot td:last-child{font-family:'Syne',sans-serif;font-weight:800;color:#1b9e6e;font-size:.88rem;text-align:right;}
+.rc3 tfoot tr.rtot:last-child td{border-bottom:1px solid #d0d7e3;}
 footer{text-align:center;padding:22px;font-size:.7rem;color:var(--mut);border-top:1px solid var(--bor)}
 .sheet-tbl-wrap{overflow-x:auto;max-height:520px;overflow-y:auto}
 .sheet-table{border-collapse:collapse;font-size:.75rem;width:100%}
@@ -1209,26 +1228,45 @@ function renderResumen(solMes) {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
   if(!solMes.length||!DATES.length){rs.style.display='none';return;}
   rs.style.display='block';
-  rg.innerHTML=DATES.map(dk=>{
+
+  rg.innerHTML=DATES.map(function(dk){
     const d=MENU[dk];
-    const byTipo={A:[],B:[],H:[],V:[],L:[],AUS:[]};
+    const cnt={A:0,B:0,H:0,V:0,L:0,AUS:0};
+    const ensCount={}, posCount={};
     solMes.forEach(function(p){
       const dia=p.dias.find(function(x){return x.fecha===dk;});
       if(!dia)return;
-      if(dia.ausente)byTipo.AUS.push(p.nombre);
-      else if(byTipo[dia.tipo])byTipo[dia.tipo].push(p.nombre);
+      if(dia.ausente){cnt.AUS++;return;}
+      if(cnt[dia.tipo]!==undefined)cnt[dia.tipo]++;
+      if(dia.ens&&dia.ens!=='(incluida)'&&dia.ens!==''){ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;}
+      if(dia.pos){posCount[dia.pos]=(posCount[dia.pos]||0)+1;}
     });
-    const filas=[['A','Plato A',d.A],['B','Plato B',d.B],['H','Hipocal\u00f3rico',d.H],['V','Vegetariano',d.V],['L','Liviano',d.L||'']].filter(function(x){return x[2]&&byTipo[x[0]].length;});
-    const total=filas.reduce(function(s,x){return s+byTipo[x[0]].length;},0);
-    if(!total&&!byTipo.AUS.length)return '';
-    var rows = filas.map(function(x){
-      var t=x[0],lbl=x[1],plato=x[2];
-      return '<tr class="'+(t==='H'?'row-hipo':'')+'"><td class="col-tipo">'+lbl+'</td><td style="font-size:.78rem">'+plato+'</td><td class="col-num">'+byTipo[t].length+'</td></tr>';
+    const totalAlmuerzo=cnt.A+cnt.B+cnt.H+cnt.V+cnt.L;
+    if(!totalAlmuerzo&&!cnt.AUS)return '';
+    const ensRows=Object.entries(ensCount).map(function(e){
+      return '<tr><td class="rtipo">ensalada</td><td class="rdesc">'+e[0]+'</td><td class="rnum">'+e[1]+'</td></tr>';
     }).join('');
-    var ausRow = byTipo.AUS.length ? '<tr class="row-aus"><td class="col-tipo">Ausencia</td><td>\u2014</td><td class="col-num">'+byTipo.AUS.length+'</td></tr>' : '';
-    return '<div class="rc2"><table><thead><tr><th colspan="2">'+d.label+' \u2014 '+d.full+'</th><th class="col-num" style="text-align:right;padding-right:14px">Cant.</th></tr></thead><tbody>'+rows+ausRow+'</tbody></table><div class="rc2-tot"><table><tbody><tr><td colspan="2">Total colaciones</td><td class="col-num">'+total+'</td></tr></tbody></table></div></div>';
+    const almRows=[['A',d.A],['B',d.B],['H',d.H],['V',d.V],['L',d.L||'']].filter(function(x){return x[1]&&cnt[x[0]];}).map(function(x){
+      const isH=x[0]==='H';
+      return '<tr'+(isH?' class="rhipo"':'')+'><td class="rtipo">Almuerzo</td><td class="rdesc">'+(isH?x[1]+' CON ENSALADAS':x[1])+'</td><td class="rnum">'+cnt[x[0]]+'</td></tr>';
+    }).join('');
+    const posRows=Object.entries(posCount).map(function(e){
+      return '<tr><td class="rtipo">Postres</td><td class="rdesc">'+e[0]+'</td><td class="rnum">'+e[1]+'</td></tr>';
+    }).join('');
+    const ausRow=cnt.AUS?'<tr class="raus"><td class="rtipo"></td><td class="rdesc">Ausencia</td><td class="rnum">'+cnt.AUS+'</td></tr>':'';
+    const totalEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
+    const totalPos=Object.values(posCount).reduce(function(a,b){return a+b;},0);
+    return '<div class="rc3"><table>'+
+      '<thead><tr><th class="rh-tipo">Tipo</th><th class="rh-desc">'+d.full+'</th><th class="rh-num">pedido</th></tr></thead>'+
+      '<tbody>'+ensRows+almRows+posRows+ausRow+'</tbody>'+
+      '<tfoot>'+
+      (totalEns?'<tr class="rtot"><td></td><td>Ensalada</td><td>'+totalEns+'</td></tr>':'')+
+      (totalAlmuerzo?'<tr class="rtot"><td></td><td>Almuerzo</td><td>'+totalAlmuerzo+'</td></tr>':'')+
+      (totalPos?'<tr class="rtot"><td></td><td>Postres</td><td>'+totalPos+'</td></tr>':'')+
+      '</tfoot></table></div>';
   }).join('');
 }
+
 
 function exportExcel() {
   const solMes=solicitudes.filter(function(s){return s.mes===menuMes;});
