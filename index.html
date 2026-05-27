@@ -635,11 +635,18 @@ function setSyncStatus(type, msg) {
 //  NAVEGACIÓN
 // ══════════════════════════════════════════════════════
 function switchView(v, e) {
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  e.currentTarget.classList.add('active');
+  // Marcar tab activo de forma robusta (sin depender de currentTarget)
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    const isAdm = t.textContent.includes('Administrar');
+    t.classList.toggle('active', v === 'adm' ? isAdm : !isAdm);
+  });
   if (v === 'adm') {
-    if (!adminOk) { document.getElementById('modalPwd').classList.remove('hidden'); setTimeout(()=>document.getElementById('adminPass').focus(),80); }
-    else openAdmin();
+    if (!adminOk) {
+      document.getElementById('modalPwd').classList.remove('hidden');
+      setTimeout(() => document.getElementById('adminPass').focus(), 80);
+    } else {
+      openAdmin();
+    }
     return;
   }
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
@@ -665,14 +672,23 @@ function cancelModal() {
   document.getElementById('modalPwd').classList.add('hidden');
   document.getElementById('adminPass').value = '';
   document.getElementById('passErr').textContent = '';
-  document.querySelectorAll('.nav-tab').forEach((t,i) => t.classList.toggle('active', i===0));
-  document.querySelectorAll('.view').forEach((v,i) => v.classList.toggle('active', i===0));
+  // Volver a vista empleado
+  document.querySelectorAll('.nav-tab').forEach(t =>
+    t.classList.toggle('active', t.textContent.includes('Solicitar'))
+  );
+  document.querySelectorAll('.view').forEach(v =>
+    v.classList.toggle('active', v.id === 'view-emp')
+  );
 }
 
 function adminLogout() {
   adminOk = false;
-  document.querySelectorAll('.nav-tab').forEach((t,i) => t.classList.toggle('active', i===0));
-  document.querySelectorAll('.view').forEach((v,i) => v.classList.toggle('active', i===0));
+  document.querySelectorAll('.nav-tab').forEach(t =>
+    t.classList.toggle('active', t.textContent.includes('Solicitar'))
+  );
+  document.querySelectorAll('.view').forEach(v =>
+    v.classList.toggle('active', v.id === 'view-emp')
+  );
   showToast('Sesión cerrada');
 }
 
@@ -1183,5 +1199,106 @@ function renderTable(solMes) {
     });
     return cols;
   });
-  tb.innerHTML=`<div class="sheet-tbl-wrap"><table class="sheet-table">
-    <thead><tr>${headers.map((h,i)=>`<th class="${i===0?'col-ts':i===1?'col-nombre':
+  tb.innerHTML = '<div class="sheet-tbl-wrap"><table class="sheet-table">' +
+    '<thead><tr>' + headers.map((h,i) => '<th class="' + (i===0?'col-ts':i===1?'col-nombre':'col-dia') + '">' + h + '</th>').join('') + '</tr></thead>' +
+    '<tbody>' + rowsData.map(row => '<tr>' + row.map((c,i) => '<td class="' + (i===0?'col-ts':i===1?'col-nombre':c==='AUSENCIA'?'ausencia':'col-plato') + '">' + c + '</td>').join('') + '</tr>').join('') + '</tbody>' +
+    '</table></div>';
+}
+
+function renderResumen(solMes) {
+  const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
+  if(!solMes.length||!DATES.length){rs.style.display='none';return;}
+  rs.style.display='block';
+  rg.innerHTML=DATES.map(dk=>{
+    const d=MENU[dk];
+    const byTipo={A:[],B:[],H:[],V:[],L:[],AUS:[]};
+    solMes.forEach(function(p){
+      const dia=p.dias.find(function(x){return x.fecha===dk;});
+      if(!dia)return;
+      if(dia.ausente)byTipo.AUS.push(p.nombre);
+      else if(byTipo[dia.tipo])byTipo[dia.tipo].push(p.nombre);
+    });
+    const filas=[['A','Plato A',d.A],['B','Plato B',d.B],['H','Hipocal\u00f3rico',d.H],['V','Vegetariano',d.V],['L','Liviano',d.L||'']].filter(function(x){return x[2]&&byTipo[x[0]].length;});
+    const total=filas.reduce(function(s,x){return s+byTipo[x[0]].length;},0);
+    if(!total&&!byTipo.AUS.length)return '';
+    var rows = filas.map(function(x){
+      var t=x[0],lbl=x[1],plato=x[2];
+      return '<tr class="'+(t==='H'?'row-hipo':'')+'"><td class="col-tipo">'+lbl+'</td><td style="font-size:.78rem">'+plato+'</td><td class="col-num">'+byTipo[t].length+'</td></tr>';
+    }).join('');
+    var ausRow = byTipo.AUS.length ? '<tr class="row-aus"><td class="col-tipo">Ausencia</td><td>\u2014</td><td class="col-num">'+byTipo.AUS.length+'</td></tr>' : '';
+    return '<div class="rc2"><table><thead><tr><th colspan="2">'+d.label+' \u2014 '+d.full+'</th><th class="col-num" style="text-align:right;padding-right:14px">Cant.</th></tr></thead><tbody>'+rows+ausRow+'</tbody></table><div class="rc2-tot"><table><tbody><tr><td colspan="2">Total colaciones</td><td class="col-num">'+total+'</td></tr></tbody></table></div></div>';
+  }).join('');
+}
+
+function exportExcel() {
+  const solMes=solicitudes.filter(function(s){return s.mes===menuMes;});
+  if(!solMes.length){showToast('Sin datos para exportar');return;}
+  const rows=[];
+  solMes.forEach(function(p){
+    p.dias.forEach(function(d){
+      rows.push({'Nombre':p.nombre,'Email':p.email,'\u00c1rea':p.area,'Mes':p.mes,'Fecha':d.fechaLabel,'Tipo':TL[d.tipo]||d.tipo,'Plato':d.fondo,'Ensalada':d.ens,'Postre':d.pos,'Ausente':d.ausente?'S\u00ed':'No'});
+    });
+  });
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb2=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2,ws,'Solicitudes');
+  XLSX.writeFile(wb2,'Colaciones_'+menuMes.replace(/ /g,'_')+'.xlsx');
+  showToast('\u2705 Excel exportado');
+}
+
+function clearAll() {
+  if(!confirm('\u00bfEliminar todas las solicitudes de '+menuMes+'?'))return;
+  solicitudes=solicitudes.filter(function(s){return s.mes!==menuMes;}); saveSol();
+  fetch(WEBHOOK_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'clear_solicitudes',mes:menuMes})}).catch(function(){});
+  renderAdmin(); showToast('Solicitudes eliminadas');
+}
+
+function crearFormAdmin() {
+  if(!DATES.length){showToast('\u26a0\ufe0f Primero carga el Excel del mes');return;}
+  const btn=document.getElementById('btnCrearForm');
+  btn.textContent='\u23f3 Creando...'; btn.disabled=true;
+  showToast('Creando formulario de '+menuMes+'... puede tardar 20 segundos',20000);
+  gasJSONP('crear_formulario').then(function(r){
+    btn.textContent='\ud83d\udcdd Crear Formulario'; btn.disabled=false;
+    if(r.ok&&r.url){
+      const overlay=document.createElement('div');
+      overlay.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(10,30,60,.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
+      const inner=document.createElement('div');
+      inner.style.cssText='background:#fff;border-radius:18px;padding:32px;width:100%;max-width:500px;text-align:center;box-shadow:0 24px 56px rgba(26,79,138,.25)';
+      inner.innerHTML='<div style="font-size:2.5rem;margin-bottom:12px">\u2705</div>'+
+        '<h2 style="font-family:Syne,sans-serif;font-weight:800;font-size:1.2rem;color:var(--azul);margin-bottom:8px">Formulario creado</h2>'+
+        '<p style="font-size:.82rem;color:var(--mut);margin-bottom:20px">'+menuMes+' \u00b7 '+r.dias+' d\u00edas h\u00e1biles</p>'+
+        '<div style="background:var(--bg2);border:1px solid var(--pale);border-radius:10px;padding:14px;margin-bottom:16px;word-break:break-all">'+
+        '<div style="font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:6px">Link para empleados</div>'+
+        '<a href="'+r.url+'" target="_blank" style="font-size:.8rem;color:var(--azul2);text-decoration:none;font-weight:600">'+r.url+'</a></div>'+
+        '<div style="display:flex;gap:8px">'+
+        '<button id="copyBtn" style="flex:1;padding:11px;background:var(--azul);color:#fff;font-family:Syne,sans-serif;font-weight:800;font-size:.85rem;border:none;border-radius:9px;cursor:pointer">\ud83d\udccb Copiar link</button>'+
+        '<button id="openBtn" style="flex:1;padding:11px;background:transparent;color:var(--azul);border:1.5px solid var(--bor);font-family:Syne,sans-serif;font-weight:700;font-size:.85rem;border-radius:9px;cursor:pointer">\ud83d\udd17 Abrir Form</button>'+
+        '<button id="closeBtn" style="padding:11px 16px;background:transparent;color:var(--mut);border:1.5px solid var(--bor);font-family:DM Sans,sans-serif;font-weight:600;font-size:.82rem;border-radius:9px;cursor:pointer">Cerrar</button>'+
+        '</div>';
+      overlay.appendChild(inner);
+      document.body.appendChild(overlay);
+      inner.querySelector('#copyBtn').onclick=function(){navigator.clipboard.writeText(r.url);this.textContent='\u2705 Copiado!';var b=this;setTimeout(function(){b.textContent='\ud83d\udccb Copiar link';},2000);};
+      inner.querySelector('#openBtn').onclick=function(){window.open(r.url,'_blank');};
+      inner.querySelector('#closeBtn').onclick=function(){overlay.remove();};
+    } else { showToast('\u274c Error: '+(r.error||'No se pudo crear el formulario')); }
+  }).catch(function(err){ btn.textContent='\ud83d\udcdd Crear Formulario'; btn.disabled=false; showToast('\u274c Error: '+err.message); });
+}
+
+function showToast(msg,dur){
+  dur=dur||3500;
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},dur);
+}
+
+// ══ INIT ══
+loadStor();
+if(DATES.length>0){menuLoaded=true;setBanner('ok','\ud83d\udccb Men\u00fa '+menuMes+' \u00b7 actualizando...');checkStart();}
+cargarMenuRemoto();
+gasJSONP('obtener_solicitudes').then(function(data){
+  if(data.ok&&Array.isArray(data.solicitudes)){solicitudes=data.solicitudes;saveSol();}
+}).catch(function(){});
+</script>
+</body>
+</html>
