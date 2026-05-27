@@ -17,7 +17,6 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
-/* ── HEADER ── */
 header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3px solid var(--azul2);
   padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;
   box-shadow:0 2px 14px rgba(26,79,138,.3)}
@@ -28,7 +27,6 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .nav-tab{font-size:.75rem;font-weight:600;padding:6px 13px;border:none;border-radius:6px;
   background:transparent;color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
 .nav-tab.active,.nav-tab:hover{background:rgba(255,255,255,.2);color:#fff}
-/* ── MODALS ── */
 .overlay{position:fixed;inset:0;z-index:400;background:rgba(10,30,60,.8);
   backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px}
 .overlay.hidden{display:none}
@@ -49,10 +47,8 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
   font-weight:800;font-size:.85rem;border:none;border-radius:9px;cursor:pointer;margin-bottom:8px}
 .mok:hover{background:var(--azul2)}
 .mcancel{background:none;border:none;color:var(--mut);font-size:.77rem;cursor:pointer;font-family:'DM Sans',sans-serif}
-/* ── VIEWS ── */
 .view{display:none}.view.active{display:block}
 .step{display:none}.step.active{display:block}
-/* ── EMPLOYEE FORM ── */
 .wrap{max-width:520px;margin:0 auto;padding:44px 20px 36px;text-align:center}
 .pill{display:inline-block;font-size:.63rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;
   color:var(--azul2);background:rgba(34,113,179,.1);border:1px solid rgba(34,113,179,.25);
@@ -61,12 +57,10 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
   line-height:1.05;letter-spacing:-1.5px;margin-bottom:8px;color:var(--azul)}
 .wrap h1 span{color:var(--azul2)}
 .sub{color:var(--mut);font-size:.86rem;line-height:1.65;margin-bottom:28px;max-width:400px;margin-left:auto;margin-right:auto}
-/* banner */
 .banner{background:var(--bg2);border:1px solid var(--pale);border-radius:10px;
   padding:11px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--azul)}
 .banner.ok{background:rgba(27,158,110,.06);border-color:rgba(27,158,110,.2);color:var(--grn)}
 .banner.err{background:rgba(217,64,64,.06);border-color:rgba(217,64,64,.2);color:var(--red)}
-/* form */
 .card{background:var(--sur);border:1px solid var(--bor);border-radius:14px;
   padding:24px;margin-bottom:20px;text-align:left;box-shadow:0 2px 12px rgba(26,79,138,.06)}
 .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
@@ -82,7 +76,6 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
   border-radius:11px;cursor:pointer;transition:all .22s}
 .btn-main:hover:not(:disabled){background:var(--azul2);transform:translateY(-1px);box-shadow:0 8px 22px rgba(26,79,138,.28)}
 .btn-main:disabled{opacity:.3;cursor:not-allowed;transform:none}
-/* ── SLIDES ── */
 .slide-outer{max-width:700px;margin:0 auto;padding:20px 18px 90px}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
 .pills{display:flex;gap:3px;flex:1}
@@ -134,7 +127,6 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
   font-size:.75rem;color:var(--grn);line-height:1.5}
 .hipo-note.show{display:block}
 .req-msg{display:none;font-size:.72rem;color:var(--red);margin-top:6px;font-weight:600}
-/* menu ref */
 .menu-ref{background:var(--bg2);border:1px solid var(--pale);border-radius:12px;padding:14px 16px;margin-top:16px}
 .menu-ref-title{font-size:.59rem;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
   color:var(--azul2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
@@ -146,7 +138,6 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .ref-sub{font-size:.58rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
 .ref-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
 .ref-chip{background:rgba(255,255,255,.8);border:1px solid var(--bor);border-radius:5px;padding:3px 8px;font-size:.66rem;color:var(--mut)}
-/* slide nav */
 .slide-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;
   background:rgba(240,245,251,.97);backdrop-filter:blur(16px);
   border-top:1px solid var(--bor);padding:11px 20px;box-shadow:0 -4px 18px rgba(26,79,138,.08)}
@@ -161,7 +152,6 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .btn-skip{padding:11px 13px;background:transparent;color:var(--mut);font-family:'DM Sans',sans-serif;
   font-weight:600;font-size:.76rem;border:1.5px solid var(--bor);border-radius:9px;cursor:pointer;transition:all .18s}
 .btn-skip:hover{color:var(--red);border-color:rgba(217,64,64,.4)}
-/* ── RESUMEN ── */
 .res-wrap{max-width:640px;margin:0 auto;padding:34px 20px 56px}
 .res-wrap h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-1px;margin-bottom:6px;color:var(--azul)}
 .rday{background:var(--sur);border:1px solid var(--bor);border-radius:13px;overflow:hidden;margin-bottom:9px;box-shadow:0 2px 9px rgba(26,79,138,.05)}
@@ -176,7 +166,6 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .btn-edit:hover{color:var(--azul2)}
 .rday-body{padding:11px 17px;font-size:.8rem;color:var(--mut);line-height:1.8}
 .rday-body strong{color:var(--txt);font-weight:600}
-/* ── ÉXITO ── */
 .exito-wrap{max-width:520px;margin:0 auto;padding:64px 20px 40px;text-align:center}
 .exito-icon{font-size:3.5rem;margin-bottom:16px;animation:pop .4s cubic-bezier(.25,.8,.25,1)}
 @keyframes pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
@@ -189,7 +178,6 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .btn-nueva{padding:12px 26px;background:var(--sur);border:1.5px solid var(--bor);color:var(--txt);
   font-family:'Syne',sans-serif;font-weight:700;font-size:.87rem;border-radius:9px;cursor:pointer;transition:all .2s}
 .btn-nueva:hover{border-color:var(--azul2);color:var(--azul2)}
-/* ── ADMIN ── */
 .admin-wrap{max-width:1100px;margin:0 auto;padding:28px 20px}
 .admin-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:22px}
 .admin-top h2{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--azul);letter-spacing:-.8px}
@@ -257,7 +245,6 @@ tr:hover td{background:rgba(34,113,179,.025)}
 .rc2-tot td{padding:5px 12px;border:none;font-size:.8rem}
 .rc2-tot td.col-num{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;color:var(--grn)}
 footer{text-align:center;padding:22px;font-size:.7rem;color:var(--mut);border-top:1px solid var(--bor)}
-/* ── TABLA ESTILO SHEETS ── */
 .sheet-tbl-wrap{overflow-x:auto;max-height:520px;overflow-y:auto}
 .sheet-table{border-collapse:collapse;font-size:.75rem;width:100%}
 .sheet-table th{background:#4472c4;color:#fff;font-weight:700;padding:7px 12px;
@@ -309,7 +296,6 @@ footer span{color:var(--azul3)}
   </div>
 </header>
 
-<!-- Modal contraseña -->
 <div class="overlay hidden" id="modalPwd">
   <div class="modal">
     <div class="modal-icon">🔐</div>
@@ -325,10 +311,7 @@ footer span{color:var(--azul3)}
 <div class="toast" id="toast"></div>
 
 <main>
-<!-- ═══ EMPLEADO ═══ -->
 <div class="view active" id="view-emp">
-
-  <!-- PASO 1: Datos -->
   <div class="step active" id="step-datos">
     <div class="wrap">
       <div class="pill" id="datePill">Colaciones · cargando...</div>
@@ -355,7 +338,6 @@ footer span{color:var(--azul3)}
     </div>
   </div>
 
-  <!-- PASO 2: Slides -->
   <div class="step" id="step-slides">
     <div class="slide-outer">
       <div class="topbar">
@@ -373,7 +355,6 @@ footer span{color:var(--azul3)}
     </div>
   </div>
 
-  <!-- PASO 3: Resumen -->
   <div class="step" id="step-resumen">
     <div class="res-wrap">
       <div class="pill" id="resumenPill">Resumen</div>
@@ -384,7 +365,6 @@ footer span{color:var(--azul3)}
     </div>
   </div>
 
-  <!-- PASO 4: Éxito -->
   <div class="step" id="step-exito">
     <div class="exito-wrap">
       <div class="exito-icon">✅</div>
@@ -395,10 +375,8 @@ footer span{color:var(--azul3)}
       <button class="btn-nueva" onclick="nuevaSolicitud()">Registrar otra persona</button>
     </div>
   </div>
+</div>
 
-</div><!-- /view-emp -->
-
-<!-- ═══ ADMIN ═══ -->
 <div class="view" id="view-adm">
   <div class="admin-wrap">
     <div class="admin-top">
@@ -452,7 +430,7 @@ footer span{color:var(--azul3)}
     </div>
   </div>
   <footer>Sistema de Colaciones · <span>TOOLTEK®</span> · Herramientas para construir el futuro</footer>
-</div><!-- /view-adm -->
+</div>
 </main>
 
 <script>
@@ -462,7 +440,6 @@ footer span{color:var(--azul3)}
 const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycby6x6H4DeuCWgkOkgIJtwavz6r8tm-Ziwp8aerFkqJQKFMI8VTN90D8xxMJPhveM-2m6A/exec';
 const PWD = 'tooltek2026';
 
-// ── ESTADO GLOBAL ──
 let MENU = {};
 let DATES = [];
 let menuMes = '';
@@ -503,10 +480,9 @@ function setLabel(label) {
 }
 
 // ══════════════════════════════════════════════════════
-//  CARGAR MENÚ
+//  CARGAR MENÚ REMOTO
 // ══════════════════════════════════════════════════════
 async function cargarMenuRemoto() {
-  // Leer menu.json desde GitHub Pages (mismo dominio = sin CORS)
   try {
     const res = await fetch('./menu.json?t=' + Date.now());
     if (res.ok) {
@@ -519,7 +495,6 @@ async function cargarMenuRemoto() {
       }
     }
   } catch(e) { console.warn('menu.json:', e.message); }
-  // Fallback: localStorage
   if (DATES.length > 0) {
     setBanner('ok', '📋 Menú ' + menuMes + ' (local)');
     menuLoaded = true; checkStart(); return;
@@ -548,7 +523,7 @@ function setBanner(type, msg) {
 }
 
 // ══════════════════════════════════════════════════════
-//  CARGAR SOLICITUDES (JSONP desde Apps Script)
+//  JSONP (Apps Script)
 // ══════════════════════════════════════════════════════
 function gasJSONP(action) {
   return new Promise((resolve, reject) => {
@@ -563,9 +538,10 @@ function gasJSONP(action) {
   });
 }
 
-// ══ CARGAR SOLICITUDES desde Google Sheets (hoja solicitudes del Apps Script) ══
+// ══════════════════════════════════════════════════════
+//  CARGAR SOLICITUDES (Google Sheets CSV)
+// ══════════════════════════════════════════════════════
 const SHEET_ID_SOL = '1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98';
-let formCols = [];
 
 async function cargarSolicitudesRemotas() {
   loadStor();
@@ -574,21 +550,13 @@ async function cargarSolicitudesRemotas() {
     const data = await sheetsViz('solicitudes', SHEET_ID_SOL);
     const rows = (data && data.table && data.table.rows) || [];
     if (!rows.length) { setSyncStatus('ok', '✅ Sin solicitudes aún'); return; }
-    // Columnas: ID | Nombre | Email | Área | Mes | Fecha Registro | Hora | Detalle JSON
     const parsed = rows.map(row => {
       const c = row.c || [];
       const g = i => (c[i] && c[i].v != null) ? String(c[i].v) : '';
       if (!g(0)) return null;
       let dias = [];
       try { dias = JSON.parse(g(7)); } catch(e) {}
-      // Construir formCols desde los días si está vacío
-      if (!formCols.length && dias.length) {
-        formCols = dias.map(d => d.fechaLabel || d.fecha);
-      }
-      return {
-        id: g(0), nombre: g(1), email: g(2), area: g(3),
-        mes: g(4), fecha_reg: g(5), hora: g(6), dias
-      };
+      return { id:g(0), nombre:g(1), email:g(2), area:g(3), mes:g(4), fecha_reg:g(5), hora:g(6), dias };
     }).filter(Boolean);
     solicitudes = parsed;
     saveSol();
@@ -602,16 +570,11 @@ async function cargarSolicitudesRemotas() {
 function sheetsViz(sheetName, sheetId) {
   return new Promise((resolve, reject) => {
     const id = sheetId || SHEET_ID_SOL;
-    const url = 'https://docs.google.com/spreadsheets/d/' + id +
-      '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName) + '&t=' + Date.now();
-    // Usar Image trick para bypass CSP — no, usar fetch con modo no-cors + workaround
-    // Mejor: usar el endpoint de exportación CSV que sí tiene CORS
     const csvUrl = 'https://docs.google.com/spreadsheets/d/' + id +
       '/export?format=csv&sheet=' + encodeURIComponent(sheetName) + '&t=' + Date.now();
     fetch(csvUrl)
       .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
       .then(csv => {
-        // Parsear CSV manualmente
         const lines = csv.trim().split('\n');
         if (lines.length < 2) { resolve({table:{cols:[],rows:[]}}); return; }
         const headers = parseCSVLine(lines[0]);
@@ -643,10 +606,9 @@ function parseCSVLine(line) {
 }
 
 // ══════════════════════════════════════════════════════
-//  GUARDAR MENÚ (POST no-cors → Apps Script → Drive)
+//  GUARDAR MENÚ REMOTO
 // ══════════════════════════════════════════════════════
 function guardarMenuRemoto() {
-  // Generar y descargar menu.json para subir a GitHub
   const json = JSON.stringify({menu:MENU,dates:DATES,mes:menuMes,updated:new Date().toISOString()}, null, 2);
   const blob = new Blob([json], {type:'application/json'});
   const a = document.createElement('a');
@@ -656,7 +618,6 @@ function guardarMenuRemoto() {
   URL.revokeObjectURL(a.href);
   setSyncStatus('ok', '✅ menu.json descargado');
   showToast('📥 Sube el menu.json a GitHub → repositorio → Add file → Upload', 7000);
-  // También enviar a Apps Script para los correos
   fetch(WEBHOOK_URL, {method:'POST',mode:'no-cors',
     body:JSON.stringify({action:'guardar_menu',menu:MENU,dates:DATES,mes:menuMes,updatedBy:'Admin'})
   }).catch(()=>{});
@@ -738,7 +699,6 @@ function checkStart() {
   const e = document.getElementById('empEmail').value.trim();
   const a = document.getElementById('empArea').value;
   document.getElementById('btnStart').disabled = !(n && e && a && menuLoaded && DATES.length > 0);
-  // Limpiar advertencia de duplicado si cambian los datos
   const warn = document.getElementById('dupWarn');
   if (warn) warn.style.display = 'none';
 }
@@ -746,14 +706,12 @@ function checkStart() {
 function startSlides() {
   const nombre = document.getElementById('empNombre').value.trim();
   const email  = document.getElementById('empEmail').value.trim();
-  // Verificar si ya existe solicitud para este mes con mismo nombre o correo
   const yaExiste = solicitudes.some(s =>
     s.mes === menuMes &&
     (s.email.toLowerCase() === email.toLowerCase() ||
      s.nombre.toLowerCase() === nombre.toLowerCase())
   );
   if (yaExiste) {
-    // Mostrar advertencia en el formulario
     let warn = document.getElementById('dupWarn');
     if (!warn) {
       warn = document.createElement('div');
@@ -776,7 +734,6 @@ function esc(s) { return s.replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
 function renderSlide(dir='fwd') {
   const dk = DATES[curIdx], d = MENU[dk], saved = choices[dk];
-  // Progress
   const pp = document.getElementById('progPills'); pp.innerHTML = '';
   DATES.forEach((_,i) => {
     const dot = document.createElement('div');
@@ -794,15 +751,14 @@ function renderSlide(dir='fwd') {
   if(d.L) tiposDisp.push(['L',d.L]);
   const ensSection = isHipo
     ? `<div class="hipo-note show">🥗 El plato hipocalórico ya incluye ensalada.</div>`
-    : `<div class="chips" id="ensGrid">${d.ens.map(e=>`<div class="chip${selE===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div>`;
-  // Ref panel
+    : `<div class="chips" id="ensGrid">${(d.ens||[]).map(e=>`<div class="chip${selE===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div>`;
   const refPlatos = [['A',d.A],['B',d.B],['H',d.H],['V',d.V]].filter(([,v])=>v);
   if(d.L) refPlatos.push(['L',d.L]);
   const refHTML = `<div class="menu-ref">
     <div class="menu-ref-title">📋 Menú completo del día</div>
     <div class="ref-grid">${refPlatos.map(([t,v])=>`<div class="ref-item"><div class="ref-label" style="color:${TC[t]}">${TL[t]}</div><div class="ref-val">${v}</div></div>`).join('')}</div>
-    ${d.ens.length?`<div class="ref-sub">🥗 Ensaladas</div><div class="ref-chips">${d.ens.map(e=>`<span class="ref-chip">${e}</span>`).join('')}</div>`:''}
-    ${d.pos.length?`<div class="ref-sub">🍮 Postres</div><div class="ref-chips">${d.pos.map(p=>`<span class="ref-chip">${p}</span>`).join('')}</div>`:''}
+    ${(d.ens||[]).length?`<div class="ref-sub">🥗 Ensaladas</div><div class="ref-chips">${(d.ens||[]).map(e=>`<span class="ref-chip">${e}</span>`).join('')}</div>`:''}
+    ${(d.pos||[]).length?`<div class="ref-sub">🍮 Postres</div><div class="ref-chips">${(d.pos||[]).map(p=>`<span class="ref-chip">${p}</span>`).join('')}</div>`:''}
   </div>`;
   document.getElementById('slideContent').innerHTML = `
     <div class="scard ${dir==='back'?'back':''}">
@@ -813,7 +769,7 @@ function renderSlide(dir='fwd') {
         </div>
         <div class="ssec" id="ensSec"><div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div>${ensSection}<div class="req-msg" id="ensReq">⚠ Selecciona una ensalada</div></div>
         <div class="ssec"><div class="ssec-title">Postre <span class="sbadge">Elige 1</span></div>
-          <div class="chips" id="posGrid">${d.pos.map(p=>`<div class="chip pos${selP===p?' sel':''}" onclick="selPos(this,'${esc(p)}')">${p}</div>`).join('')}</div>
+          <div class="chips" id="posGrid">${(d.pos||[]).map(p=>`<div class="chip pos${selP===p?' sel':''}" onclick="selPos(this,'${esc(p)}')">${p}</div>`).join('')}</div>
           <div class="req-msg" id="posReq">⚠ Selecciona un postre</div>
         </div>
         ${refHTML}
@@ -834,7 +790,7 @@ function selTipo(t, el) {
     sec.innerHTML = `<div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div><div class="hipo-note show">🥗 El plato hipocalórico ya incluye ensalada.</div>`;
   } else {
     const ce = _tmp.ens||'';
-    sec.innerHTML = `<div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div><div class="chips" id="ensGrid">${d.ens.map(e=>`<div class="chip${ce===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div><div class="req-msg" id="ensReq">⚠ Selecciona una ensalada</div>`;
+    sec.innerHTML = `<div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div><div class="chips" id="ensGrid">${(d.ens||[]).map(e=>`<div class="chip${ce===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div><div class="req-msg" id="ensReq">⚠ Selecciona una ensalada</div>`;
   }
   updateNextBtn();
 }
@@ -952,166 +908,232 @@ function nuevaSolicitud() {
 }
 
 // ══════════════════════════════════════════════════════
-//  EXCEL PARSER
+//  EXCEL PARSER — TOOLTEK (versión corregida)
 // ══════════════════════════════════════════════════════
-function parseMenuExcel(wb){
-  const MONTH_NAMES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  function parseDK(txt){if(!txt)return null;const m=String(txt).match(/(\d{1,2})[\/\-](\d{1,2})/);return m?m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0'):null;}
-  function parseDow(txt){const DOW={lunes:'Lun',martes:'Mar','miercoles':'Mié','miércoles':'Mié',jueves:'Jue',viernes:'Vie'};const t=String(txt).toLowerCase().trim();for(const [k,v] of Object.entries(DOW))if(t.startsWith(k))return v;return String(txt).split(/[\s\-]/)[0];}
-  function clean(v){return v?String(v).trim():'';}
-  function normT(s){return Array.from(s).map(c=>({Ñ:'N',Á:'A',É:'E',Í:'I',Ó:'O',Ú:'U'}[c]||c)).join('');}
-  function stripEns(s){return s.replace(/^ENS\s+/i,'').trim();}
-  const TIPOS=['A','B','H','V','L'];
-  function findDateCols(row){const DR=/\d{1,2}[\/\-]\d{1,2}/;const acc=[];row.forEach((v,i)=>{if(!v)return;const s=String(v).trim();if(DR.test(s)&&s.length<40&&!['CANT','CANTIDAD'].includes(s.toUpperCase()))acc.push(i);});return acc;}
-  const candidates=[];
-  for(const sn of wb.SheetNames){
-    const ws=wb.Sheets[sn];const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-    const semRow=rows.find(r=>r&&r[0]&&String(r[0]).trim().toUpperCase().startsWith('SEMANA'));
-    if(!semRow)continue;const dayCols=findDateCols(semRow);if(!dayCols.length)continue;
-    let mon='',yr='';
-    for(const row of rows.slice(0,5)){if(!row)continue;const txt=row.map(v=>v?String(v):'').join(' ').toUpperCase();for(let mi=1;mi<=12;mi++){if(txt.includes(MONTH_NAMES[mi].toUpperCase())){mon=MONTH_NAMES[mi];const ym=txt.match(/20\d{2}/);if(ym)yr=ym[0];break;}}if(mon)break;}
-    if(!mon){for(const col of dayCols){const dk=parseDK(semRow[col]);if(dk){const mm=parseInt(dk.split('/')[1],10);if(mm>=1&&mm<=12){mon=MONTH_NAMES[mm];break;}}}}
-    candidates.push({sn,mon,yr});
+function parseMenuExcel(wb) {
+  const MONTH_NAMES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function clean(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'number' && isNaN(v)) return '';
+    return String(v).trim();
   }
-  let picked=null;
-  for(const c of candidates)if(c.mon&&c.sn.trim().toUpperCase()===c.mon.toUpperCase())picked=c;
-  if(!picked)for(const c of candidates)if(c.sn.trim()==='Hoja1'){picked=c;break;}
-  if(!picked)for(const c of candidates)if(c.mon){picked=c;break;}
-  if(!picked&&candidates.length)picked=candidates[0];
-  if(!picked)return{menu:{},mes:''};
-  const ws=wb.Sheets[picked.sn];const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-  const targetMM=picked.mon?MONTH_NAMES.indexOf(picked.mon):0;
-  const newMenu={};
-  // Pre-scan feriados
-  const feriadosDates=new Set();
-  for(let fi=0;fi<rows.length;fi++){
-    const fr=rows[fi];if(!fr)continue;
-    fr.forEach((v,ci)=>{
-      if(!v||String(v).trim().toUpperCase()!=='FERIADO')return;
-      for(let d=1;d<=8;d++){const nr=rows[fi+d];if(!nr)continue;const nv=nr[ci]?String(nr[ci]).trim():'';const dk2=parseDK(nv);if(dk2){feriadosDates.add(dk2);return;}}
-      for(let d=1;d<=8;d++){const nr=rows[fi-d];if(!nr)continue;const nv=nr[ci]?String(nr[ci]).trim():'';const dk2=parseDK(nv);if(dk2){feriadosDates.add(dk2);return;}}
-    });
+
+  function parseDow(txt) {
+    const DOW = { lunes:'Lun', martes:'Mar', miercoles:'Mié', miércoles:'Mié', jueves:'Jue', viernes:'Vie' };
+    const t = String(txt).toLowerCase().trim();
+    for (const [k, v] of Object.entries(DOW)) if (t.startsWith(k)) return v;
+    return String(txt).split(/[\s\-]/)[0];
   }
-  let i=0;
-  while(i<rows.length){
-    const row=rows[i];
-    if(!row||!row[0]){i++;continue;}
-    const c0=String(row[0]).trim().toUpperCase();
-    if(!c0.startsWith('SEMANA')){i++;continue;}
-    const semLabel=String(row[0]).trim();
-    const dayCols=findDateCols(row);
-    const wds=[];
-    for(const col of dayCols){
-      const dk=parseDK(row[col]);if(!dk)continue;
-      if(targetMM&&parseInt(dk.split('/')[1],10)!==targetMM)continue;
-      wds.push({col,dk});
-      newMenu[dk]={label:parseDow(String(row[col]))+' '+dk.split('/')[0],full:String(row[col]).replace(/\s*-\s*/,' ').trim(),semana:semLabel,ens:[],A:'',B:'',H:'',V:'',L:'',pos:[],feriado:feriadosDates.has(dk)};
+
+  function stripEns(s) { return s.replace(/^ENS\.?\s*/i, '').trim(); }
+
+  const CAT_KEYS = {
+    'ENSALADAS': 'ENS',
+    'PLATO DE FONDO CON ACOMPANAMIENTO A': 'A',
+    'PLATO DE FONDO CON ACOMPANAMIENTO B': 'B',
+    'FONDO HIPOCALORICO': 'H',
+    'FONDO VEGETARIANO': 'V',
+    'POSTRES': 'POS',
+  };
+
+  function normStr(s) {
+    return String(s).toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  function detectCat(s) {
+    if (!s) return null;
+    const n = normStr(s);
+    for (const [key, val] of Object.entries(CAT_KEYS)) {
+      if (n.startsWith(key)) return val;
     }
-    i++;if(!wds.length)continue;
-    const POSTRES_KW=['FLAN','JALEA','FRUTA','BRAZO','TORTA','QUEQUE','MOUSSE','COMPOTA','HELADO','PREELAB','MEDIALUNA','MOTE','BROWNIE','ARROZ CON LECHE','PANACOTTA','SEMOLA','COLEGIAL','DURAZNOS'];
-    let pendingType=null;
-    while(i<rows.length){
-      const r=rows[i];
-      if(!r||!r.some(v=>v)){i++;continue;}
-      const rc0=r[0]?String(r[0]).trim().toUpperCase():'';
-      const rc1=r[1]?String(r[1]).trim().toUpperCase():'';
-      const rc2=r[2]?String(r[2]).trim().toUpperCase():'';
-      if(rc0.startsWith('SEMANA'))break;
-      const isHipo=rc1.includes('HIPOCAL');
-      const isVeg=rc1.includes('VEGETARIANO')&&!isHipo;
-      const isLiv=rc1.includes('LIVIANO')&&!isHipo&&!isVeg;
-      const isPost=rc1.includes('POSTRE');
-      const isFeriado=rc1.includes('FERIADO')||rc0.includes('FERIADO');
-      const rc1n=normT(rc1);
-      const isPlatA=rc1.includes('ACOMP')&&(rc1n.endsWith(' A')||rc1n.endsWith('MIENTO A'))&&!isHipo&&!isVeg&&!isLiv;
-      const isPlatB=rc1.includes('ACOMP')&&(rc1n.endsWith(' B')||rc1n.endsWith('MIENTO B'))&&!isHipo&&!isVeg&&!isLiv;
-      const isEns=rc1==='ENSALADAS'&&!isHipo&&!isVeg;
-      const tipoCol2=(!isPlatA&&!isPlatB&&!isHipo&&!isVeg&&!isLiv&&TIPOS.includes(rc2))?rc2:null;
-      const noFeriado=v=>!v||String(v).trim().toUpperCase()!=='FERIADO';
-      if(isFeriado){
-        for(const {col,dk} of wds){const v=col<r.length?r[col]:null;const vs=v?String(v).trim().toUpperCase():'';if(vs==='FERIADO'||(!vs&&(rc0==='FERIADO'||rc1==='FERIADO'))){if(newMenu[dk])newMenu[dk].feriado=true;}}
-        pendingType=null;
-      } else if(isEns){
-        pendingType='ENS';
-        for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk]&&noFeriado(v))newMenu[dk].ens.push(stripEns(clean(v)));}
-      } else if(isPlatA||isPlatB||isHipo||isVeg||isLiv){
-        pendingType=isPlatA?'A':isPlatB?'B':isHipo?'H':isVeg?'V':'L';
-        for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!newMenu[dk])continue;if(!v)continue;let val=clean(v).replace(/con ensaladas/i,'').trim();if(val.toUpperCase()==='FERIADO'){newMenu[dk].feriado=true;continue;}newMenu[dk][pendingType]=val;}
-      } else if(tipoCol2){
-        pendingType=null;
-        for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!newMenu[dk])continue;if(!v)continue;let val=clean(v).replace(/con ensaladas/i,'').trim();if(val.toUpperCase()==='FERIADO')continue;newMenu[dk][tipoCol2]=val;}
-      } else if(isPost){
-        pendingType='POS';
-        for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(v&&newMenu[dk]&&noFeriado(v))newMenu[dk].pos.push(clean(v));}
-      } else if(!rc0&&!rc1){
-        const hasVals=wds.some(({col})=>col<r.length&&r[col]&&String(r[col]).trim().length>1&&noFeriado(r[col]));
-        if(hasVals&&pendingType&&pendingType!=='ENS'&&pendingType!=='POS'){
-          for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!v||!newMenu[dk])continue;const acomp=clean(v).replace(/con ensaladas/i,'').trim();if(!acomp||acomp.toUpperCase()==='FERIADO')continue;if(newMenu[dk][pendingType]&&!['H','L'].includes(pendingType))newMenu[dk][pendingType]+=' / '+acomp;}
-          pendingType=null;
-        } else if(hasVals&&pendingType==='ENS'){
-          for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!v||!newMenu[dk]||!noFeriado(v))continue;newMenu[dk].ens.push(stripEns(clean(v)));}
-        } else if(hasVals&&pendingType==='POS'){
-          for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!v||!newMenu[dk]||!noFeriado(v))continue;newMenu[dk].pos.push(clean(v));}
-        } else if(hasVals){
-          for(const {col,dk} of wds){const v=col<r.length?r[col]:null;if(!v||!newMenu[dk]||!noFeriado(v))continue;const val=stripEns(clean(v));if(!val)continue;const valUp=val.toUpperCase();const isPostreKw=POSTRES_KW.some(kw=>valUp.includes(kw));const ensYaSuf=(newMenu[dk].ens?.length||0)>=2;if(isPostreKw||ensYaSuf)newMenu[dk].pos.push(val);else newMenu[dk].ens.push(val);}
+    if (n.includes('HIPOCAL')) return 'H';
+    if (n.includes('VEGETARIANO')) return 'V';
+    if (n.includes('POSTRE')) return 'POS';
+    if (n.includes('ENSALAD')) return 'ENS';
+    if (n.includes('ACOMP') && /\bA$/.test(n)) return 'A';
+    if (n.includes('ACOMP') && /\bB$/.test(n)) return 'B';
+    return null;
+  }
+
+  // ── Elegir hoja ──────────────────────────────────────
+  let ws = null;
+  for (const sn of wb.SheetNames) {
+    const s = wb.Sheets[sn];
+    const rows = XLSX.utils.sheet_to_json(s, { header: 1, defval: null });
+    if (rows.some(r => r && r[0] && String(r[0]).trim().toUpperCase().startsWith('SEMANA'))) {
+      ws = s; break;
+    }
+  }
+  if (!ws) ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) return { menu: {}, mes: '' };
+
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+  // ── Detectar mes ─────────────────────────────────────
+  let menuMesLocal = '';
+  for (let i = 0; i < Math.min(8, rows.length); i++) {
+    const txt = (rows[i] || []).map(v => clean(v)).join(' ');
+    const txtN = normStr(txt);
+    for (let mi = 1; mi <= 12; mi++) {
+      if (txtN.includes(normStr(MONTH_NAMES[mi]))) {
+        const ym = txt.match(/20\d{2}/);
+        menuMesLocal = MONTH_NAMES[mi] + (ym ? ' ' + ym[0] : '');
+        break;
+      }
+    }
+    if (menuMesLocal) break;
+  }
+
+  const newMenu = {};
+  let i = 0;
+
+  while (i < rows.length) {
+    const row = rows[i];
+    if (!row || !row[0] || !String(row[0]).trim().toUpperCase().startsWith('SEMANA')) { i++; continue; }
+
+    const semLabel = String(row[0]).trim();
+
+    // Columnas de días: posiciones 2 a 6
+    const dayCols = [];
+    for (let col = 2; col <= 6; col++) {
+      const v = clean(row[col]);
+      if (v) dayCols.push({ col, raw: v });
+    }
+    if (!dayCols.length) { i++; continue; }
+
+    // Inicializar días
+    for (const { col, raw } of dayCols) {
+      const mDate = raw.match(/(\d{1,2})[\/\-](\d{1,2})/);
+      if (!mDate) continue;
+      const dk = mDate[1].padStart(2, '0') + '/' + mDate[2].padStart(2, '0');
+      if (!menuMesLocal) {
+        const mm = parseInt(mDate[2], 10);
+        if (mm >= 1 && mm <= 12) menuMesLocal = MONTH_NAMES[mm];
+      }
+      newMenu[dk] = {
+        label: parseDow(raw) + ' ' + mDate[1].padStart(2, '0'),
+        full: raw.replace(/\s*[-–]\s*/g, ' ').trim(),
+        semana: semLabel,
+        ens: [], A: '', B: '', H: '', V: '', L: '', pos: [],
+        feriado: false,
+      };
+    }
+
+    i++;
+    let currentCat = null;
+
+    while (i < rows.length) {
+      const r = rows[i];
+      if (!r) { i++; continue; }
+
+      const c0 = clean(r[0]);
+      const c1 = clean(r[1]);
+
+      // Nueva semana
+      if (c0.toUpperCase().startsWith('SEMANA')) break;
+
+      // Detectar categoría
+      const detectedCat = detectCat(c1) || (c0 !== 'ALMUERZO' ? detectCat(c0) : null);
+      if (detectedCat) currentCat = detectedCat;
+
+      // Leer valores por día
+      for (const { col, raw } of dayCols) {
+        const mDate = raw.match(/(\d{1,2})[\/\-](\d{1,2})/);
+        if (!mDate) continue;
+        const dk = mDate[1].padStart(2, '0') + '/' + mDate[2].padStart(2, '0');
+        if (!newMenu[dk]) continue;
+
+        const val = clean(r[col]);
+        if (!val || normStr(val) === 'NAN') continue;
+
+        if (normStr(val) === 'FERIADO') { newMenu[dk].feriado = true; continue; }
+        if (!currentCat) continue;
+
+        if (currentCat === 'ENS') {
+          newMenu[dk].ens.push(stripEns(val));
+        } else if (currentCat === 'POS') {
+          newMenu[dk].pos.push(val);
+        } else if (['A','B','H','V','L'].includes(currentCat)) {
+          const cleaned = val.replace(/con ensaladas/i, '').trim();
+          if (!newMenu[dk][currentCat]) {
+            newMenu[dk][currentCat] = cleaned;
+          } else if (['A','B'].includes(currentCat)) {
+            newMenu[dk][currentCat] += ' / ' + cleaned;
+          }
         }
-      } else {pendingType=null;}
+      }
+
       i++;
     }
-    for(const {dk} of wds){if(newMenu[dk]&&!newMenu[dk].A&&!newMenu[dk].feriado)newMenu[dk].feriado=true;if(newMenu[dk]&&feriadosDates.has(dk))newMenu[dk].feriado=true;}
+
+    // Marcar feriados sin plato A
+    for (const { raw } of dayCols) {
+      const mDate = raw.match(/(\d{1,2})[\/\-](\d{1,2})/);
+      if (!mDate) continue;
+      const dk = mDate[1].padStart(2, '0') + '/' + mDate[2].padStart(2, '0');
+      if (newMenu[dk] && !newMenu[dk].A) newMenu[dk].feriado = true;
+    }
   }
-  return{menu:newMenu,mes:(picked.mon+(picked.yr?' '+picked.yr:''))};
+
+  return { menu: newMenu, mes: menuMesLocal };
 }
 
 // ══════════════════════════════════════════════════════
 //  ADMIN — EXCEL
 // ══════════════════════════════════════════════════════
 function loadExcel(e) {
-  const f=e.target.files[0];if(!f)return;
+  const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=ev=>{
-    try{
+    try {
       const wb=XLSX.read(ev.target.result,{type:'array'});
       const parsed=parseMenuExcel(wb);
       const valid=Object.keys(parsed.menu).filter(dk=>{const d=parsed.menu[dk];return !d.feriado&&d.A&&d.B;}).sort();
       if(!valid.length){showToast('⚠️ No se encontraron días hábiles');return;}
-      MENU=parsed.menu;DATES=valid;menuMes=parsed.mes||f.name.replace(/\.xlsx?/i,'');
-      setLabel(menuMes);saveMenu();
+      MENU=parsed.menu; DATES=valid; menuMes=parsed.mes||f.name.replace(/\.xlsx?/i,'');
+      setLabel(menuMes); saveMenu();
       const zone=document.getElementById('upZone');
-      zone.classList.add('loaded');zone.onclick=null;
+      zone.classList.add('loaded'); zone.onclick=null;
       document.getElementById('upIcon').textContent='✅';
       document.getElementById('upTitle').textContent='Minuta cargada: '+menuMes;
       document.getElementById('upDesc').textContent=valid.length+' días hábiles · '+f.name;
       renderMenuPreview();
       guardarMenuRemoto();
-    }catch(err){showToast('❌ Error: '+err.message);}
+    } catch(err){ showToast('❌ Error: '+err.message); console.error(err); }
   };
   r.readAsArrayBuffer(f);
   e.target.value='';
 }
 
 function dropFile(e) {
-  e.preventDefault();document.getElementById('upZone').classList.remove('drag');
-  const f=e.dataTransfer.files[0];if(!f)return;loadExcel({target:{files:[f]}});
+  e.preventDefault(); document.getElementById('upZone').classList.remove('drag');
+  const f=e.dataTransfer.files[0]; if(!f) return; loadExcel({target:{files:[f]}});
 }
 
 function renderMenuPreview() {
-  const el=document.getElementById('menuPreview');if(!el)return;
-  const semanas={};for(const dk of DATES){const d=MENU[dk];if(!semanas[d.semana])semanas[d.semana]=[];semanas[d.semana].push(dk);}
+  const el=document.getElementById('menuPreview'); if(!el) return;
+  const semanas={};
+  for(const dk of DATES){const d=MENU[dk];if(!semanas[d.semana])semanas[d.semana]=[];semanas[d.semana].push(dk);}
   let html=`<div class="menu-prev"><div class="mphead"><h3>📋 Vista previa — ${menuMes}</h3><span>${DATES.length} días hábiles</span></div>`;
   for(const [sem,dks] of Object.entries(semanas)){
     html+=`<div class="mpweek-title">${sem}</div><div class="mpdays">`;
-    for(const dk of dks){const d=MENU[dk];html+=`<div class="mpday"><div class="mpday-lbl">${d.label}</div><div class="mprow"><strong>A:</strong> ${d.A.substring(0,35)}…</div><div class="mprow"><strong>B:</strong> ${d.B.substring(0,35)}…</div><div class="mprow"><strong>H:</strong> ${d.H.substring(0,33)}…</div></div>`;}
+    for(const dk of dks){
+      const d=MENU[dk];
+      html+=`<div class="mpday"><div class="mpday-lbl">${d.label}</div><div class="mprow"><strong>A:</strong> ${(d.A||'').substring(0,35)}…</div><div class="mprow"><strong>B:</strong> ${(d.B||'').substring(0,35)}…</div><div class="mprow"><strong>H:</strong> ${(d.H||'').substring(0,33)}…</div></div>`;
+    }
     html+=`</div>`;
   }
-  html+=`</div>`;el.innerHTML=html;el.style.display='block';
+  html+=`</div>`;
+  el.innerHTML=html; el.style.display='block';
 }
 
 // ══════════════════════════════════════════════════════
 //  ADMIN — RENDER
 // ══════════════════════════════════════════════════════
 function renderAdmin() {
-  // Filtrar por mes ignorando mayúsculas/minúsculas
   const mesLower = menuMes.toLowerCase();
   const solMes = solicitudes.filter(s => s.mes && s.mes.toLowerCase() === mesLower);
   renderStats(solMes);
@@ -1121,7 +1143,6 @@ function renderAdmin() {
 
 function renderStats(solMes) {
   const el=document.getElementById('statsGrid');
-  solMes = solMes || solicitudes.filter(s=>(s.mes||'').toLowerCase()===menuMes.toLowerCase());
   if(!solMes.length){el.style.display='none';return;}
   el.style.display='grid';
   document.getElementById('sPer').textContent=solMes.length;
@@ -1137,167 +1158,30 @@ function renderStats(solMes) {
   document.getElementById('sV').textContent=v;
   document.getElementById('sL').textContent=l;
   document.getElementById('sAus').textContent=aus;
-  // Mostrar todos los stats
-  ['sA','sB','sH','sV','sL'].forEach(id=>{
-    const sc=document.getElementById(id);
-    if(sc)sc.closest('.sc').style.display='block';
-  });
 }
 
 function renderTable(solMes) {
   const tw=document.getElementById('tblWrap'),tb=document.getElementById('tblBody'),fr=document.getElementById('fltRow');
-  solMes = solMes || solicitudes.filter(s=>(s.mes||'').toLowerCase()===menuMes.toLowerCase());
   if(!solMes.length){tw.style.display='none';return;}
   tw.style.display='block';
   fr.innerHTML='<span style="font-size:.75rem;color:var(--mut);font-weight:600">'+solMes.length+' personas · '+menuMes+'</span>';
-
-  // Obtener todos los días únicos en orden
-  const diasMap = {};
-  solMes.forEach(p => (p.dias||[]).forEach(d => {
-    if (!d.ausente && !diasMap[d.fecha]) diasMap[d.fecha] = d.fechaLabel || d.fecha;
-  }));
-  // Usar DATES si está disponible, si no usar los del mapa
-  const diasOrden = DATES.length ? DATES.filter(dk => diasMap[dk] || solMes.some(p=>p.dias.find(d=>d.fecha===dk))) : Object.keys(diasMap).sort();
-
-  const headers = ['Marca temporal','Nombre'].concat(diasOrden.map(dk => {
-    const d = MENU[dk];
-    return d ? d.label + ' ' + dk : diasMap[dk] || dk;
-  }));
-
-  const rows = solMes.map(p => {
-    const cols = [p.fecha_reg + (p.hora?' '+p.hora:''), p.nombre];
-    diasOrden.forEach(dk => {
-      const dia = (p.dias||[]).find(d => d.fecha === dk);
-      if (!dia) { cols.push('—'); return; }
-      if (dia.ausente) { cols.push('AUSENCIA'); return; }
-      // Formato: Tipo · Plato (ensalada, postre)
-      const partes = [];
-      if (dia.fondo) partes.push(dia.fondo);
-      if (dia.ens && dia.ens !== '(incluida)') partes.push(dia.ens);
-      if (dia.pos) partes.push(dia.pos);
+  const diasMap={};
+  solMes.forEach(p=>(p.dias||[]).forEach(d=>{if(!d.ausente&&!diasMap[d.fecha])diasMap[d.fecha]=d.fechaLabel||d.fecha;}));
+  const diasOrden=DATES.length?DATES.filter(dk=>diasMap[dk]||solMes.some(p=>p.dias.find(d=>d.fecha===dk))):Object.keys(diasMap).sort();
+  const headers=['Marca temporal','Nombre'].concat(diasOrden.map(dk=>{const d=MENU[dk];return d?d.label+' '+dk:diasMap[dk]||dk;}));
+  const rowsData=solMes.map(p=>{
+    const cols=[p.fecha_reg+(p.hora?' '+p.hora:''),p.nombre];
+    diasOrden.forEach(dk=>{
+      const dia=(p.dias||[]).find(d=>d.fecha===dk);
+      if(!dia){cols.push('—');return;}
+      if(dia.ausente){cols.push('AUSENCIA');return;}
+      const partes=[];
+      if(dia.fondo)partes.push(dia.fondo);
+      if(dia.ens&&dia.ens!=='(incluida)')partes.push(dia.ens);
+      if(dia.pos)partes.push(dia.pos);
       cols.push(partes.join(' · '));
     });
     return cols;
   });
-
-  tb.innerHTML = `<div class="sheet-tbl-wrap"><table class="sheet-table">
-    <thead><tr>${headers.map((h,i)=>`<th class="${i===0?'col-ts':i===1?'col-nombre':'col-dia'}">${h}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(row=>`<tr>${row.map((c,i)=>`<td class="${i===0?'col-ts':i===1?'col-nombre':c==='AUSENCIA'?'ausencia':'col-plato'}">${c}</td>`).join('')}</tr>`).join('')}</tbody>
-  </table></div>`;
-}
-
-function setFlt(f){adminFilter=f;renderTable();}
-
-function renderResumen(solMes) {
-  const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
-  solMes = solMes || solicitudes.filter(s=>(s.mes||'').toLowerCase()===menuMes.toLowerCase());
-  if(!solMes.length||!DATES.length){rs.style.display='none';return;}
-  rs.style.display='block';
-
-  rg.innerHTML = DATES.map(dk => {
-    const d = MENU[dk];
-    const byTipo = {A:[],B:[],H:[],V:[],L:[],AUS:[]};
-    solMes.forEach(p => {
-      const dia = p.dias.find(x => x.fecha === dk);
-      if (!dia) return;
-      if (dia.ausente) byTipo.AUS.push(p.nombre);
-      else if (byTipo[dia.tipo]) byTipo[dia.tipo].push(p.nombre);
-    });
-    const filas = [
-      ['A','Plato A', d.A],['B','Plato B', d.B],
-      ['H','Hipocalórico', d.H],['V','Vegetariano', d.V],
-      ['L','Liviano', d.L||'']
-    ].filter(([t,,p]) => p && byTipo[t].length);
-    const total = filas.reduce((s,[t]) => s+byTipo[t].length, 0);
-    if (!total && !byTipo.AUS.length) return '';
-    return `<div class="rc2">
-      <table><thead><tr><th colspan="2">${d.label} — ${d.full}</th><th class="col-num" style="text-align:right;padding-right:14px">Cant.</th></tr></thead>
-      <tbody>
-        ${filas.map(([t,lbl,plato])=>`<tr class="${t==='H'?'row-hipo':''}"><td class="col-tipo">${lbl}</td><td style="font-size:.78rem">${plato}</td><td class="col-num">${byTipo[t].length}</td></tr>`).join('')}
-        ${byTipo.AUS.length?`<tr class="row-aus"><td class="col-tipo">Ausencia</td><td>—</td><td class="col-num">${byTipo.AUS.length}</td></tr>`:''}
-      </tbody></table>
-      <div class="rc2-tot"><table><tbody><tr><td colspan="2">Total colaciones</td><td class="col-num">${total}</td></tr></tbody></table></div>
-    </div>`;
-  }).join('');
-}
-
-function exportExcel(){
-  const solMes=solicitudes.filter(s=>s.mes===menuMes);
-  if(!solMes.length){showToast('Sin datos para exportar');return;}
-  const ws=XLSX.utils.json_to_sheet(solMes.flatMap(p=>p.dias.map(d=>({'Nombre':p.nombre,'Email':p.email,'Área':p.area,'Mes':p.mes,'Fecha':d.fechaLabel,'Tipo':TL[d.tipo]||d.tipo,'Plato':d.fondo,'Ensalada':d.ens,'Postre':d.pos,'Ausente':d.ausente?'Sí':'No'}))));
-  const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,'Solicitudes');
-  XLSX.writeFile(wb2,'Colaciones_'+menuMes.replace(/ /g,'_')+'.xlsx');
-  showToast('✅ Excel exportado');
-}
-
-function clearAll(){
-  if(!confirm('¿Eliminar todas las solicitudes de '+menuMes+'?'))return;
-  solicitudes=solicitudes.filter(s=>s.mes!==menuMes);saveSol();
-  fetch(WEBHOOK_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'clear_solicitudes',mes:menuMes})}).catch(()=>{});
-  renderAdmin();showToast('Solicitudes eliminadas');
-}
-
-function crearFormAdmin() {
-  if (!DATES.length) { showToast('⚠️ Primero carga el Excel del mes'); return; }
-  const btn = document.getElementById('btnCrearForm');
-  btn.textContent = '⏳ Creando...'; btn.disabled = true;
-  showToast('Creando formulario de ' + menuMes + '... puede tardar 20 segundos', 20000);
-  // Llamar al Apps Script via JSONP
-  gasJSONP('crear_formulario').then(r => {
-    btn.textContent = '📝 Crear Formulario'; btn.disabled = false;
-    if (r.ok && r.url) {
-      // Mostrar modal con el link
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(10,30,60,.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
-      overlay.innerHTML = `<div style="background:#fff;border-radius:18px;padding:32px;width:100%;max-width:500px;text-align:center;box-shadow:0 24px 56px rgba(26,79,138,.25)">
-        <div style="font-size:2.5rem;margin-bottom:12px">✅</div>
-        <h2 style="font-family:Syne,sans-serif;font-weight:800;font-size:1.2rem;color:var(--azul);margin-bottom:8px">Formulario creado</h2>
-        <p style="font-size:.82rem;color:var(--mut);margin-bottom:20px">${menuMes} · ${r.dias} días hábiles<br>El link fue enviado a tu correo.</p>
-        <div style="background:var(--bg2);border:1px solid var(--pale);border-radius:10px;padding:14px;margin-bottom:16px;word-break:break-all">
-          <div style="font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:6px">Link para empleados</div>
-          <a href="${r.url}" target="_blank" style="font-size:.8rem;color:var(--azul2);text-decoration:none;font-weight:600">${r.url}</a>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button onclick="navigator.clipboard.writeText('${r.url}');this.textContent='✅ Copiado!';setTimeout(()=>this.textContent='📋 Copiar link',2000)"
-            style="flex:1;padding:11px;background:var(--azul);color:#fff;font-family:Syne,sans-serif;font-weight:800;font-size:.85rem;border:none;border-radius:9px;cursor:pointer">📋 Copiar link</button>
-          <button onclick="window.open('${r.url}','_blank')"
-            style="flex:1;padding:11px;background:transparent;color:var(--azul);border:1.5px solid var(--bor);font-family:Syne,sans-serif;font-weight:700;font-size:.85rem;border-radius:9px;cursor:pointer">🔗 Abrir Form</button>
-          <button onclick="this.closest('div[style]').remove()"
-            style="padding:11px 16px;background:transparent;color:var(--mut);border:1.5px solid var(--bor);font-family:DM Sans,sans-serif;font-weight:600;font-size:.82rem;border-radius:9px;cursor:pointer">Cerrar</button>
-        </div>
-      </div>`;
-      document.body.appendChild(overlay);
-    } else {
-      showToast('❌ Error: ' + (r.error || 'No se pudo crear el formulario'));
-    }
-  }).catch(err => {
-    btn.textContent = '📝 Crear Formulario'; btn.disabled = false;
-    showToast('❌ Error: ' + err.message);
-  });
-}
-
-function cambiarHoja(){
-  const id = prompt('Pega el ID de la Google Sheet del Form de este mes:', SHEET_ID_SOL);
-  if(id && id.trim()){
-    localStorage.setItem('tt_form_sheet', id.trim());
-    showToast('✅ Hoja actualizada — recargando...');
-    cargarSolicitudesRemotas().then(()=>renderAdmin());
-  }
-}
-
-function showToast(msg,dur=3500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
-
-// ══ INIT ══
-loadStor();
-if(DATES.length>0){menuLoaded=true;setBanner('ok','📋 Menú '+menuMes+' · actualizando...');checkStart();}
-cargarMenuRemoto();
-// Cargar solicitudes en segundo plano para verificar duplicados
-gasJSONP('obtener_solicitudes').then(data => {
-  if (data.ok && Array.isArray(data.solicitudes)) {
-    solicitudes = data.solicitudes;
-    saveSol();
-  }
-}).catch(() => {});
-</script>
-</body>
-</html>
+  tb.innerHTML=`<div class="sheet-tbl-wrap"><table class="sheet-table">
+    <thead><tr>${headers.map((h,i)=>`<th class="${i===0?'col-ts':i===1?'col-nombre':
