@@ -734,7 +734,11 @@ function openAdmin() {
   document.getElementById('tblBody').innerHTML = '<div class="empty"><div class="spinner" style="width:22px;height:22px;margin:0 auto 8px"></div><p>Cargando solicitudes...</p></div>';
   document.getElementById('statsGrid').style.display = 'none';
   document.getElementById('resSection').style.display = 'none';
-  cargarSolicitudesRemotas().then(() => renderAdmin());
+  // Esperar solicitudes Y menú antes de renderizar
+  Promise.all([
+    cargarSolicitudesRemotas(),
+    cargarMenuRemoto()
+  ]).then(function() { renderAdmin(); });
 }
 
 function showStep(id) {
@@ -1217,8 +1221,11 @@ function renderTable(solMes) {
   tw.style.display='block';
   fr.innerHTML='<span style="font-size:.75rem;color:var(--mut);font-weight:600">'+solMes.length+' personas · '+menuMes+'</span>';
   const diasMap={};
-  solMes.forEach(p=>(p.dias||[]).forEach(d=>{if(!d.ausente&&!diasMap[d.fecha])diasMap[d.fecha]=d.fechaLabel||d.fecha;}));
-  const diasOrden=DATES.length?DATES.filter(dk=>diasMap[dk]||solMes.some(p=>p.dias.find(d=>d.fecha===dk))):Object.keys(diasMap).sort();
+  solMes.forEach(function(p){(p.dias||[]).forEach(function(d){if(!diasMap[d.fecha])diasMap[d.fecha]=d.fechaLabel||d.fecha;});});
+  // Usar DATES si está disponible, si no reconstruir desde las solicitudes
+  const diasOrden=DATES.length
+    ? DATES.filter(function(dk){return diasMap[dk]||solMes.some(function(p){return p.dias.find(function(d){return d.fecha===dk;});});})
+    : Object.keys(diasMap).sort();
   const headers=['Marca temporal','Nombre'].concat(diasOrden.map(dk=>{const d=MENU[dk];return d?d.label+' '+dk:diasMap[dk]||dk;}));
   const rowsData=solMes.map(p=>{
     const cols=[p.fecha_reg+(p.hora?' '+p.hora:''),p.nombre];
@@ -1242,10 +1249,16 @@ function renderTable(solMes) {
 
 function renderResumen(solMes) {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
-  if(!solMes.length||!DATES.length){rs.style.display='none';return;}
+  if(!solMes.length){rs.style.display='none';return;}
+  // Si no hay DATES, reconstruir desde solicitudes
+  const diasKeys = DATES.length ? DATES : (function(){
+    const dm={};
+    solMes.forEach(function(p){(p.dias||[]).forEach(function(d){if(!dm[d.fecha])dm[d.fecha]=1;});});
+    return Object.keys(dm).sort();
+  })();
   rs.style.display='block';
 
-  rg.innerHTML=DATES.map(function(dk){
+  rg.innerHTML=diasKeys.map(function(dk){
     const d=MENU[dk];
     const cnt={A:0,B:0,H:0,V:0,L:0,AUS:0};
     const ensCount={}, posCount={};
