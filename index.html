@@ -1305,7 +1305,6 @@ function renderTable(solMes) {
 function renderResumen(solMes) {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
   if(!solMes.length){rs.style.display='none';return;}
-  // Si no hay DATES, reconstruir desde solicitudes
   const diasKeys = DATES.length ? DATES : (function(){
     const dm={};
     solMes.forEach(function(p){(p.dias||[]).forEach(function(d){if(!dm[d.fecha])dm[d.fecha]=1;});});
@@ -1315,31 +1314,68 @@ function renderResumen(solMes) {
 
   rg.innerHTML=diasKeys.map(function(dk){
     const d=MENU[dk];
+    if(!d) return '';
+
+    // Contadores por tipo de plato
     const cnt={A:0,B:0,H:0,V:0,L:0,AUS:0};
-    const ensCount={}, posCount={};
+    // Ensaladas: solo de quienes NO pidieron hipocalórico
+    const ensCount={};
+    // Postres: todos
+    const posCount={};
+
     solMes.forEach(function(p){
       const dia=p.dias.find(function(x){return x.fecha===dk;});
       if(!dia)return;
       if(dia.ausente){cnt.AUS++;return;}
-      if(cnt[dia.tipo]!==undefined)cnt[dia.tipo]++;
-      if(dia.ens&&dia.ens!=='(incluida)'&&dia.ens!==''){ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;}
-      if(dia.pos){posCount[dia.pos]=(posCount[dia.pos]||0)+1;}
+      if(cnt[dia.tipo]!==undefined) cnt[dia.tipo]++;
+      // Ensalada: excluir hipocalórico (ya la incluye)
+      if(dia.tipo!=='H' && dia.ens && dia.ens!=='(incluida)' && dia.ens!==''){
+        ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;
+      }
+      if(dia.pos) posCount[dia.pos]=(posCount[dia.pos]||0)+1;
     });
+
     const totalAlmuerzo=cnt.A+cnt.B+cnt.H+cnt.V+cnt.L;
-    if(!totalAlmuerzo&&!cnt.AUS)return '';
-    const ensRows=Object.entries(ensCount).map(function(e){
-      return '<tr><td class="rtipo">ensalada</td><td class="rdesc">'+e[0]+'</td><td class="rnum">'+e[1]+'</td></tr>';
-    }).join('');
-    const almRows=[['A',d.A],['B',d.B],['H',d.H],['V',d.V],['L',d.L||'']].filter(function(x){return x[1]&&cnt[x[0]];}).map(function(x){
-      const isH=x[0]==='H';
-      return '<tr'+(isH?' class="rhipo"':'')+'><td class="rtipo">Almuerzo</td><td class="rdesc">'+(isH?x[1]+' CON ENSALADAS':x[1])+'</td><td class="rnum">'+cnt[x[0]]+'</td></tr>';
-    }).join('');
-    const posRows=Object.entries(posCount).map(function(e){
-      return '<tr><td class="rtipo">Postres</td><td class="rdesc">'+e[0]+'</td><td class="rnum">'+e[1]+'</td></tr>';
-    }).join('');
-    const ausRow=cnt.AUS?'<tr class="raus"><td class="rtipo"></td><td class="rdesc">Ausencia</td><td class="rnum">'+cnt.AUS+'</td></tr>':'';
-    const totalEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
-    const totalPos=Object.values(posCount).reduce(function(a,b){return a+b;},0);
+    if(!totalAlmuerzo && !cnt.AUS) return '';
+
+    // ── Ensaladas: mostrar TODAS las del menú, con 0 si no fue pedida ──
+    var ensRows='';
+    if(d.ens && d.ens.length){
+      d.ens.forEach(function(ens){
+        var n=ensCount[ens]||0;
+        var zero=n===0?' style="color:#bbb"':'';
+        ensRows+='<tr'+zero+'><td class="rtipo">ensalada</td><td class="rdesc">'+ens+'</td><td class="rnum">'+(n||'—')+'</td></tr>';
+      });
+    }
+
+    // ── Almuerzos: mostrar TODOS los del menú, con 0 si no fue pedido ──
+    var almRows='';
+    [['A',d.A],['B',d.B],['H',d.H],['V',d.V],['L',d.L||'']].forEach(function(x){
+      if(!x[1]) return; // no existe este tipo en el menú de hoy
+      var t=x[0], plato=x[1], n=cnt[t]||0;
+      var isH=(t==='H');
+      var zero=n===0?' style="color:#bbb"':'';
+      var desc=isH?plato+' CON ENSALADAS':plato;
+      almRows+='<tr'+(isH&&n?' class="rhipo"':'')+zero+'><td class="rtipo">Almuerzo</td><td class="rdesc">'+desc+'</td><td class="rnum">'+(n||'—')+'</td></tr>';
+    });
+
+    // ── Postres: mostrar TODOS los del menú, con 0 si no fue pedido ──
+    var posRows='';
+    if(d.pos && d.pos.length){
+      d.pos.forEach(function(pos){
+        var n=posCount[pos]||0;
+        var zero=n===0?' style="color:#bbb"':'';
+        posRows+='<tr'+zero+'><td class="rtipo">Postres</td><td class="rdesc">'+pos+'</td><td class="rnum">'+(n||'—')+'</td></tr>';
+      });
+    }
+
+    // ── Ausencia ──
+    var ausRow=cnt.AUS?'<tr class="raus"><td class="rtipo"></td><td class="rdesc">Ausencia</td><td class="rnum">'+cnt.AUS+'</td></tr>':'';
+
+    // ── Totales (solo los que tienen pedidos) ──
+    var totalEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
+    var totalPos=Object.values(posCount).reduce(function(a,b){return a+b;},0);
+
     return '<div class="rc3"><table>'+
       '<thead><tr><th class="rh-tipo">Tipo</th><th class="rh-desc">'+d.full+'</th><th class="rh-num">pedido</th></tr></thead>'+
       '<tbody>'+ensRows+almRows+posRows+ausRow+'</tbody>'+
@@ -1353,20 +1389,71 @@ function renderResumen(solMes) {
 
 
 function exportExcel() {
-  const solMes=solicitudes.filter(function(s){return s.mes===menuMes;});
-  if(!solMes.length){showToast('Sin datos para exportar');return;}
-  const rows=[];
-  solMes.forEach(function(p){
-    p.dias.forEach(function(d){
-      rows.push({'Nombre':p.nombre,'Email':p.email,'\u00c1rea':p.area,'Mes':p.mes,'Fecha':d.fechaLabel,'Tipo':TL[d.tipo]||d.tipo,'Plato':d.fondo,'Ensalada':d.ens,'Postre':d.pos,'Ausente':d.ausente?'S\u00ed':'No'});
+  const solMes = solicitudes.filter(function(s){ return s.mes === menuMes; });
+  if(!solMes.length){ showToast('Sin datos para exportar'); return; }
+
+  const diasOrden = DATES.length ? DATES : (function(){
+    const dm={};
+    solMes.forEach(function(p){
+      (p.dias||[]).forEach(function(d){ if(!dm[d.fecha]) dm[d.fecha]=d.fechaLabel||d.fecha; });
     });
+    return Object.keys(dm).sort();
+  })();
+
+  const fixedCols = ['Nombre','Email','Área'];
+
+  // Una sola columna por día
+  const header1 = fixedCols.slice();
+  diasOrden.forEach(function(dk){
+    const d = MENU[dk];
+    header1.push(d ? d.full : dk);
   });
-  const ws=XLSX.utils.json_to_sheet(rows);
-  const wb2=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb2,ws,'Solicitudes');
-  XLSX.writeFile(wb2,'Colaciones_'+menuMes.replace(/ /g,'_')+'.xlsx');
-  showToast('\u2705 Excel exportado');
+  header1.push('Ausencias');
+
+  // Filas de personas
+  const dataRows = solMes.map(function(p){
+    const row = [p.nombre, p.email, p.area];
+    var ausencias = 0;
+    diasOrden.forEach(function(dk){
+      const dia = (p.dias||[]).find(function(d){ return d.fecha===dk; });
+      if(!dia){
+        row.push('');
+      } else if(dia.ausente){
+        row.push('Ausencia');
+        ausencias++;
+      } else {
+        // Juntar ensalada, plato y postre separados por coma
+        const partes = [];
+        if(dia.tipo==='H'){
+          partes.push(dia.fondo||'');
+          partes.push('Ensalada incluida');
+        } else {
+          if(dia.ens) partes.push(dia.ens);
+          if(dia.fondo) partes.push(dia.fondo);
+        }
+        if(dia.pos) partes.push(dia.pos);
+        row.push(partes.join(', '));
+      }
+    });
+    row.push(ausencias || '');
+    return row;
+  });
+
+  const aoa = [header1].concat(dataRows);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Ancho de columnas
+  const wscols = fixedCols.map(function(){ return {wch:22}; });
+  diasOrden.forEach(function(){ wscols.push({wch:45}); });
+  wscols.push({wch:10});
+  ws['!cols'] = wscols;
+
+  const wb2 = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2, ws, 'Solicitudes');
+  XLSX.writeFile(wb2, 'Colaciones_'+menuMes.replace(/ /g,'_')+'.xlsx');
+  showToast('✅ Excel exportado');
 }
+
 
 function clearAll() {
   if(!confirm('\u00bfEliminar todas las solicitudes de '+menuMes+'?'))return;
