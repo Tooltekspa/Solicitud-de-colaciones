@@ -473,6 +473,19 @@ let adminOk = false;
 let _tmp = {tipo:null,ens:null,pos:null};
 
 const TL = {A:'Plato A',B:'Plato B',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia'};
+
+// Normaliza el campo mes: convierte "2026-06-01T04:00:00.000Z" → "Junio 2026"
+const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function normalizarMes(mes) {
+  if (!mes) return '';
+  var s = String(mes);
+  // Si ya es texto legible (ej: "Junio 2026"), devolverlo tal cual
+  if (!/^\d{4}-\d{2}/.test(s)) return s.trim();
+  // Si es ISO date: extraer mes y año
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return s.trim();
+  return MESES_ES[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+}
 const TC = {A:'var(--azul2)',B:'var(--pur)',H:'var(--grn)',V:'var(--lim)',L:'var(--ora)'};
 const TB = {A:'bA',B:'bB',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 
@@ -1191,6 +1204,9 @@ function renderMenuPreview() {
 //  ADMIN — RENDER
 // ══════════════════════════════════════════════════════
 function renderAdmin() {
+  // Normalizar mes en todas las solicitudes (puede llegar como ISO date desde Sheets)
+  solicitudes.forEach(function(s){ s.mes = normalizarMes(s.mes); });
+
   var mesesDisp = [];
   solicitudes.forEach(function(s){ if(s.mes && mesesDisp.indexOf(s.mes)<0) mesesDisp.push(s.mes); });
   mesesDisp.sort();
@@ -1403,7 +1419,11 @@ loadStor();
 if(DATES.length>0){menuLoaded=true;setBanner('ok','\ud83d\udccb Men\u00fa '+menuMes+' \u00b7 actualizando...');checkStart();}
 cargarMenuRemoto();
 gasJSONP('obtener_solicitudes').then(function(data){
-  if(data.ok&&Array.isArray(data.solicitudes)){solicitudes=data.solicitudes;saveSol();}
+  if(data.ok&&Array.isArray(data.solicitudes)){
+    data.solicitudes.forEach(function(s){ s.mes = normalizarMes(s.mes); });
+    solicitudes=data.solicitudes;
+    saveSol();
+  }
 }).catch(function(){});
 </script>
 </body>
