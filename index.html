@@ -415,6 +415,8 @@ footer span{color:var(--azul3)}
       </div>
     </div>
 
+    <div id="mesSelector" style="display:none;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+
     <div class="upzone" id="upZone"
       onclick="document.getElementById('fileInput').click()"
       ondragover="event.preventDefault();this.classList.add('drag')"
@@ -1189,12 +1191,49 @@ function renderMenuPreview() {
 //  ADMIN — RENDER
 // ══════════════════════════════════════════════════════
 function renderAdmin() {
-  const mesLower = menuMes.toLowerCase();
-  const solMes = solicitudes.filter(s => s.mes && s.mes.toLowerCase() === mesLower);
+  var mesesDisp = [];
+  solicitudes.forEach(function(s){ if(s.mes && mesesDisp.indexOf(s.mes)<0) mesesDisp.push(s.mes); });
+  mesesDisp.sort();
+
+  if (!menuMes && mesesDisp.length) {
+    menuMes = mesesDisp[mesesDisp.length - 1];
+    setLabel(menuMes);
+  }
+
+  var mesLower = menuMes.toLowerCase();
+  var solMes = menuMes
+    ? solicitudes.filter(function(s){ return s.mes && s.mes.toLowerCase() === mesLower; })
+    : solicitudes;
+
+  var selWrap = document.getElementById('mesSelector');
+  if (selWrap) {
+    if (mesesDisp.length > 1) {
+      selWrap.style.display = 'flex';
+      var btns = '<span style="font-size:.75rem;color:var(--mut);font-weight:600;margin-right:6px">Mes:</span>';
+      mesesDisp.forEach(function(m) {
+        var active = m.toLowerCase() === mesLower ? ' on' : '';
+        btns += '<button class="flt' + active + '" style="border-radius:6px" data-mes="' + m + '">' + m + '</button>';
+      });
+      selWrap.innerHTML = btns;
+      selWrap.querySelectorAll('button').forEach(function(btn) {
+        btn.addEventListener('click', function() { cambiarMes(this.getAttribute('data-mes')); });
+      });
+    } else {
+      selWrap.style.display = 'none';
+    }
+  }
+
   renderStats(solMes);
   renderTable(solMes);
   renderResumen(solMes);
 }
+
+function cambiarMes(mes) {
+  menuMes = mes;
+  setLabel(mes);
+  renderAdmin();
+}
+
 
 function renderStats(solMes) {
   const el=document.getElementById('statsGrid');
