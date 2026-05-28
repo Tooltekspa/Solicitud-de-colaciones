@@ -566,23 +566,39 @@ async function cargarSolicitudesRemotas() {
   loadStor();
   setSyncStatus('syncing', '☁️ Cargando solicitudes...');
   try {
-    const data = await sheetsViz('solicitudes', SHEET_ID_SOL);
-    const rows = (data && data.table && data.table.rows) || [];
-    if (!rows.length) { setSyncStatus('ok', '✅ Sin solicitudes aún'); return; }
-    const parsed = rows.map(row => {
-      const c = row.c || [];
-      const g = i => (c[i] && c[i].v != null) ? String(c[i].v) : '';
-      if (!g(0)) return null;
-      let dias = [];
-      try { dias = JSON.parse(g(7)); } catch(e) {}
-      return { id:g(0), nombre:g(1), email:g(2), area:g(3), mes:g(4), fecha_reg:g(5), hora:g(6), dias };
-    }).filter(Boolean);
+    // Usar Apps Script via JSONP — funciona en móvil y escritorio sin problemas de CORS
+    const data = await gasJSONP('obtener_solicitudes');
+    if (!data.ok) throw new Error(data.error || 'Error del servidor');
+    const parsed = (data.solicitudes || []).filter(function(s){ return s && s.id; });
     solicitudes = parsed;
     saveSol();
     setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes cargadas');
   } catch(err) {
-    setSyncStatus('err', '❌ ' + err.message);
-    console.warn('Solicitudes error:', err);
+    // Fallback: intentar CSV de Sheets
+    try {
+      const data = await sheetsViz('solicitudes', SHEET_ID_SOL);
+      const rows = (data && data.table && data.table.rows) || [];
+      if (!rows.length) { setSyncStatus('ok', '✅ Sin solicitudes aún'); return; }
+      const parsed = rows.map(function(row) {
+        const c = row.c || [];
+        const g = function(i){ return (c[i] && c[i].v != null) ? String(c[i].v) : ''; };
+        if (!g(0)) return null;
+        let dias = [];
+        try { dias = JSON.parse(g(7)); } catch(e) {}
+        return { id:g(0), nombre:g(1), email:g(2), area:g(3), mes:g(4), fecha_reg:g(5), hora:g(6), dias };
+      }).filter(Boolean);
+      solicitudes = parsed;
+      saveSol();
+      setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes (fallback)');
+    } catch(err2) {
+      // Último fallback: usar datos locales guardados en localStorage
+      if (solicitudes.length) {
+        setSyncStatus('ok', '📱 ' + solicitudes.length + ' solicitudes (local)');
+      } else {
+        setSyncStatus('err', '❌ Sin conexión — ' + err.message);
+      }
+      console.warn('Solicitudes error:', err.message);
+    }
   }
 }
 
