@@ -458,8 +458,9 @@ footer span{color:var(--azul3)}
 // ══════════════════════════════════════════════════════
 //  CONFIGURACIÓN
 // ══════════════════════════════════════════════════════
-const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycby6x6H4DeuCWgkOkgIJtwavz6r8tm-Ziwp8aerFkqJQKFMI8VTN90D8xxMJPhveM-2m6A/exec';
-const PWD = 'tooltek2026';
+const WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycby6x6H4DeuCWgkOkgIJtwavz6r8tm-Ziwp8aerFkqJQKFMI8VTN90D8xxMJPhveM-2m6A/exec';
+const SESSION_KEY  = 'tt_admin_token';
+const SESSION_MINS = 120; // sesión válida 2 horas
 
 let MENU = {};
 let DATES = [];
@@ -471,6 +472,23 @@ let curIdx = 0;
 let adminFilter = 'all';
 let adminOk = false;
 let _tmp = {tipo:null,ens:null,pos:null};
+
+// ══════════════════════════════════════════════════════
+//  SESIÓN ADMIN (token en sessionStorage + expiración)
+// ══════════════════════════════════════════════════════
+function guardarSesion(token) {
+  const exp = Date.now() + SESSION_MINS * 60 * 1000;
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({token, exp}));
+}
+function sesionValida() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+    return s && s.token && Date.now() < s.exp;
+  } catch(e) { return false; }
+}
+function borrarSesion() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
 
 const TL = {A:'Plato A',B:'Plato B',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia'};
 
@@ -557,16 +575,18 @@ function setBanner(type, msg) {
 }
 
 // ══════════════════════════════════════════════════════
-//  JSONP (Apps Script)
+//  JSONP (Apps Script) — soporta parámetros extra
 // ══════════════════════════════════════════════════════
-function gasJSONP(action) {
+function gasJSONP(action, params) {
   return new Promise((resolve, reject) => {
     const cb = 'cb_' + Date.now();
     const script = document.createElement('script');
     const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 12000);
     function cleanup() { clearTimeout(timer); delete window[cb]; if(script.parentNode) script.remove(); }
     window[cb] = (data) => { cleanup(); resolve(data); };
-    script.src = WEBHOOK_URL + '?action=' + action + '&callback=' + cb + '&t=' + Date.now();
+    let qs = WEBHOOK_URL + '?action=' + action + '&callback=' + cb + '&t=' + Date.now();
+    if (params) Object.keys(params).forEach(k => qs += '&' + k + '=' + encodeURIComponent(params[k]));
+    script.src = qs;
     script.onerror = () => { cleanup(); reject(new Error('No se pudo cargar')); };
     document.head.appendChild(script);
   });
@@ -685,17 +705,18 @@ function setSyncStatus(type, msg) {
 //  NAVEGACIÓN
 // ══════════════════════════════════════════════════════
 function switchView(v, e) {
-  // Marcar tab activo de forma robusta (sin depender de currentTarget)
   document.querySelectorAll('.nav-tab').forEach(t => {
     const isAdm = t.textContent.includes('Administrar');
     t.classList.toggle('active', v === 'adm' ? isAdm : !isAdm);
   });
   if (v === 'adm') {
-    if (!adminOk) {
+    // Si ya hay sesión válida guardada, entrar directo
+    if (adminOk || sesionValida()) {
+      adminOk = true;
+      openAdmin();
+    } else {
       document.getElementById('modalPwd').classList.remove('hidden');
       setTimeout(() => document.getElementById('adminPass').focus(), 80);
-    } else {
-      openAdmin();
     }
     return;
   }
@@ -703,19 +724,64 @@ function switchView(v, e) {
   document.getElementById('view-' + v).classList.add('active');
 }
 
+// ══════════════════════════════════════════════════════
+//  LOGIN ADMIN — valida contra GAS, no en el navegador
+// ══════════════════════════════════════════════════════
+let _loginIntentos = 0;
+let _loginBloqueadoHasta = 0;
+
 function checkPass() {
-  const v = document.getElementById('adminPass').value;
   const inp = document.getElementById('adminPass');
-  if (v === PWD) {
-    adminOk = true;
-    document.getElementById('modalPwd').classList.add('hidden');
-    inp.value = ''; document.getElementById('passErr').textContent = '';
-    openAdmin();
-  } else {
-    inp.classList.add('err'); document.getElementById('passErr').textContent = 'Contraseña incorrecta.';
-    setTimeout(() => inp.classList.remove('err'), 350);
-    inp.value = ''; inp.focus();
+  const errEl = document.getElementById('passErr');
+  const v = inp.value;
+
+  // Bloqueo temporal tras 5 intentos fallidos
+  if (Date.now() < _loginBloqueadoHasta) {
+    const seg = Math.ceil((_loginBloqueadoHasta - Date.now()) / 1000);
+    errEl.textContent = 'Demasiados intentos. Espera ' + seg + 's.';
+    inp.value = ''; return;
   }
+
+  if (!v) return;
+
+  // Deshabilitar botón mientras verifica
+  const btn = document.querySelector('.mok');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  errEl.textContent = '';
+
+  gasJSONP('verificar_pwd', {pwd: v}).then(function(r) {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar →';
+    inp.value = '';
+
+    if (r.ok && r.token) {
+      _loginIntentos = 0;
+      adminOk = true;
+      guardarSesion(r.token);
+      document.getElementById('modalPwd').classList.add('hidden');
+      errEl.textContent = '';
+      openAdmin();
+    } else {
+      _loginIntentos++;
+      if (_loginIntentos >= 5) {
+        _loginBloqueadoHasta = Date.now() + 60000; // bloqueo 60 segundos
+        _loginIntentos = 0;
+        errEl.textContent = 'Demasiados intentos. Bloqueado 60s.';
+      } else {
+        errEl.textContent = 'Contraseña incorrecta. (' + _loginIntentos + '/5)';
+      }
+      inp.classList.add('err');
+      setTimeout(() => inp.classList.remove('err'), 350);
+      inp.focus();
+    }
+  }).catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar →';
+    inp.value = '';
+    errEl.textContent = 'Error de conexión. Reintenta.';
+    inp.focus();
+  });
 }
 
 function cancelModal() {
@@ -733,6 +799,7 @@ function cancelModal() {
 
 function adminLogout() {
   adminOk = false;
+  borrarSesion();
   document.querySelectorAll('.nav-tab').forEach(t =>
     t.classList.toggle('active', t.textContent.includes('Solicitar'))
   );
