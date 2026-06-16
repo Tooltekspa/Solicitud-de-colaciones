@@ -405,7 +405,7 @@ footer span{color:var(--azul3)}
       </div>
       <div class="abtn-row">
         <button class="abtn ao" onclick="document.getElementById('fileInput').click()">📂 Cargar Minuta Excel</button>
-        <button class="abtn ap" id="btnCrearForm" onclick="crearFormAdmin()">📝 Crear Formulario</button>
+
         <button class="abtn ap" onclick="exportExcel()">⬇ Exportar</button>
         <button class="abtn as" onclick="window.open('https://docs.google.com/spreadsheets/d/1pchibLG8II9v1aJasoyFtC8yc41upeyzjHw8E9Vhu98','_blank')">📊 Ver en Sheets</button>
         <button class="abtn ad" onclick="clearAll()">🗑 Limpiar</button>
@@ -720,6 +720,7 @@ function switchView(v, e) {
     }
     return;
   }
+  detenerPolling();
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
 }
@@ -795,6 +796,7 @@ function cancelModal() {
   document.getElementById('modalPwd').classList.add('hidden');
   document.getElementById('adminPass').value = '';
   document.getElementById('passErr').textContent = '';
+  detenerPolling();
   // Volver a vista empleado
   document.querySelectorAll('.nav-tab').forEach(t =>
     t.classList.toggle('active', t.textContent.includes('Solicitar'))
@@ -807,6 +809,7 @@ function cancelModal() {
 function adminLogout() {
   adminOk = false;
   borrarSesion();
+  detenerPolling();
   document.querySelectorAll('.nav-tab').forEach(t =>
     t.classList.toggle('active', t.textContent.includes('Solicitar'))
   );
@@ -816,6 +819,13 @@ function adminLogout() {
   showToast('Sesión cerrada');
 }
 
+// ══════════════════════════════════════════════════════
+//  POLLING AUTOMÁTICO — actualiza cada 30s en admin
+// ══════════════════════════════════════════════════════
+let _pollTimer      = null;
+let _countdownTimer = null;
+const POLL_INTERVAL = 30000;
+
 function openAdmin() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-adm').classList.add('active');
@@ -823,11 +833,47 @@ function openAdmin() {
   document.getElementById('tblBody').innerHTML = '<div class="empty"><div class="spinner" style="width:22px;height:22px;margin:0 auto 8px"></div><p>Cargando solicitudes...</p></div>';
   document.getElementById('statsGrid').style.display = 'none';
   document.getElementById('resSection').style.display = 'none';
-  // Esperar solicitudes Y menú antes de renderizar
   Promise.all([
     cargarSolicitudesRemotas(),
     cargarMenuRemoto()
-  ]).then(function() { renderAdmin(); });
+  ]).then(function() { renderAdmin(); iniciarPolling(); });
+}
+
+function iniciarPolling() {
+  detenerPolling();
+  var seg = POLL_INTERVAL / 1000;
+
+  _countdownTimer = setInterval(function() {
+    seg--;
+    if (seg > 0) setSyncStatus('ok', '\u23f1 Actualiza en ' + seg + 's');
+  }, 1000);
+
+  _pollTimer = setInterval(function() {
+    if (!document.getElementById('view-adm').classList.contains('active')) {
+      detenerPolling(); return;
+    }
+    setSyncStatus('syncing', '\ud83d\udd04 Actualizando...');
+    gasJSONP('obtener_solicitudes').then(function(data) {
+      if (data.ok && Array.isArray(data.solicitudes)) {
+        data.solicitudes.forEach(function(s){ s.mes = normalizarMes(s.mes); });
+        var antes = solicitudes.length;
+        solicitudes = data.solicitudes;
+        saveSol();
+        renderAdmin();
+        var nuevas = solicitudes.length - antes;
+        if (nuevas > 0) showToast('\ud83d\udd14 ' + nuevas + ' solicitud' + (nuevas !== 1 ? 'es nuevas' : ' nueva'));
+        seg = POLL_INTERVAL / 1000;
+        setSyncStatus('ok', '\u23f1 Actualiza en ' + seg + 's');
+      }
+    }).catch(function() { setSyncStatus('err', '\u26a0\ufe0f Sin conexión'); seg = POLL_INTERVAL / 1000; });
+  }, POLL_INTERVAL);
+
+  setSyncStatus('ok', '\u23f1 Actualiza en ' + seg + 's');
+}
+
+function detenerPolling() {
+  if (_pollTimer)      { clearInterval(_pollTimer);      _pollTimer      = null; }
+  if (_countdownTimer) { clearInterval(_countdownTimer); _countdownTimer = null; }
 }
 
 function showStep(id) {
@@ -1536,37 +1582,6 @@ function clearAll() {
   renderAdmin(); showToast('Solicitudes eliminadas');
 }
 
-function crearFormAdmin() {
-  if(!DATES.length){showToast('\u26a0\ufe0f Primero carga el Excel del mes');return;}
-  const btn=document.getElementById('btnCrearForm');
-  btn.textContent='\u23f3 Creando...'; btn.disabled=true;
-  showToast('Creando formulario de '+menuMes+'... puede tardar 20 segundos',20000);
-  gasJSONP('crear_formulario').then(function(r){
-    btn.textContent='\ud83d\udcdd Crear Formulario'; btn.disabled=false;
-    if(r.ok&&r.url){
-      const overlay=document.createElement('div');
-      overlay.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(10,30,60,.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px';
-      const inner=document.createElement('div');
-      inner.style.cssText='background:#fff;border-radius:18px;padding:32px;width:100%;max-width:500px;text-align:center;box-shadow:0 24px 56px rgba(26,79,138,.25)';
-      inner.innerHTML='<div style="font-size:2.5rem;margin-bottom:12px">\u2705</div>'+
-        '<h2 style="font-family:Syne,sans-serif;font-weight:800;font-size:1.2rem;color:var(--azul);margin-bottom:8px">Formulario creado</h2>'+
-        '<p style="font-size:.82rem;color:var(--mut);margin-bottom:20px">'+menuMes+' \u00b7 '+r.dias+' d\u00edas h\u00e1biles</p>'+
-        '<div style="background:var(--bg2);border:1px solid var(--pale);border-radius:10px;padding:14px;margin-bottom:16px;word-break:break-all">'+
-        '<div style="font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-bottom:6px">Link para empleados</div>'+
-        '<a href="'+r.url+'" target="_blank" style="font-size:.8rem;color:var(--azul2);text-decoration:none;font-weight:600">'+r.url+'</a></div>'+
-        '<div style="display:flex;gap:8px">'+
-        '<button id="copyBtn" style="flex:1;padding:11px;background:var(--azul);color:#fff;font-family:Syne,sans-serif;font-weight:800;font-size:.85rem;border:none;border-radius:9px;cursor:pointer">\ud83d\udccb Copiar link</button>'+
-        '<button id="openBtn" style="flex:1;padding:11px;background:transparent;color:var(--azul);border:1.5px solid var(--bor);font-family:Syne,sans-serif;font-weight:700;font-size:.85rem;border-radius:9px;cursor:pointer">\ud83d\udd17 Abrir Form</button>'+
-        '<button id="closeBtn" style="padding:11px 16px;background:transparent;color:var(--mut);border:1.5px solid var(--bor);font-family:DM Sans,sans-serif;font-weight:600;font-size:.82rem;border-radius:9px;cursor:pointer">Cerrar</button>'+
-        '</div>';
-      overlay.appendChild(inner);
-      document.body.appendChild(overlay);
-      inner.querySelector('#copyBtn').onclick=function(){navigator.clipboard.writeText(r.url);this.textContent='\u2705 Copiado!';var b=this;setTimeout(function(){b.textContent='\ud83d\udccb Copiar link';},2000);};
-      inner.querySelector('#openBtn').onclick=function(){window.open(r.url,'_blank');};
-      inner.querySelector('#closeBtn').onclick=function(){overlay.remove();};
-    } else { showToast('\u274c Error: '+(r.error||'No se pudo crear el formulario')); }
-  }).catch(function(err){ btn.textContent='\ud83d\udcdd Crear Formulario'; btn.disabled=false; showToast('\u274c Error: '+err.message); });
-}
 
 function showToast(msg,dur){
   dur=dur||3500;
