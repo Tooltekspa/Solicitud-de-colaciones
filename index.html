@@ -750,38 +750,45 @@ function checkPass() {
   btn.textContent = 'Verificando...';
   errEl.textContent = '';
 
-  gasJSONP('verificar_pwd', {pwd: v}).then(function(r) {
-    btn.disabled = false;
-    btn.textContent = 'Ingresar →';
-    inp.value = '';
+  // Hash SHA-256 — la contraseña nunca viaja en texto plano por la URL
+  crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))
+    .then(function(hashBuf) {
+      const hash = Array.from(new Uint8Array(hashBuf))
+        .map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+      return gasJSONP('verificar_pwd', {pwd: hash});
+    })
+    .then(function(r) {
+      btn.disabled = false;
+      btn.textContent = 'Ingresar →';
+      inp.value = '';
 
-    if (r.ok && r.token) {
-      _loginIntentos = 0;
-      adminOk = true;
-      guardarSesion(r.token);
-      document.getElementById('modalPwd').classList.add('hidden');
-      errEl.textContent = '';
-      openAdmin();
-    } else {
-      _loginIntentos++;
-      if (_loginIntentos >= 5) {
-        _loginBloqueadoHasta = Date.now() + 60000; // bloqueo 60 segundos
+      if (r.ok && r.token) {
         _loginIntentos = 0;
-        errEl.textContent = 'Demasiados intentos. Bloqueado 60s.';
+        adminOk = true;
+        guardarSesion(r.token);
+        document.getElementById('modalPwd').classList.add('hidden');
+        errEl.textContent = '';
+        openAdmin();
       } else {
-        errEl.textContent = 'Contraseña incorrecta. (' + _loginIntentos + '/5)';
+        _loginIntentos++;
+        if (_loginIntentos >= 5) {
+          _loginBloqueadoHasta = Date.now() + 60000;
+          _loginIntentos = 0;
+          errEl.textContent = 'Demasiados intentos. Bloqueado 60s.';
+        } else {
+          errEl.textContent = 'Contraseña incorrecta. (' + _loginIntentos + '/5)';
+        }
+        inp.classList.add('err');
+        setTimeout(function(){ inp.classList.remove('err'); }, 350);
+        inp.focus();
       }
-      inp.classList.add('err');
-      setTimeout(() => inp.classList.remove('err'), 350);
+    }).catch(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Ingresar →';
+      inp.value = '';
+      errEl.textContent = 'Error de conexión. Reintenta.';
       inp.focus();
-    }
-  }).catch(function(err) {
-    btn.disabled = false;
-    btn.textContent = 'Ingresar →';
-    inp.value = '';
-    errEl.textContent = 'Error de conexión. Reintenta.';
-    inp.focus();
-  });
+    });
 }
 
 function cancelModal() {
