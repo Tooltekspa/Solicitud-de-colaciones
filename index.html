@@ -1106,6 +1106,13 @@ function parseMenuExcel(wb) {
   if (!ws) ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) return { menu: {}, mes: '' };
 
+  // Mapa de celdas combinadas en columna B (índice 1): fila_inicio → fila_fin.
+  // Cada categoría "PLATO DE FONDO..." ocupa exactamente las filas que abarca
+  // su celda combinada; las filas sueltas entre una categoría y la siguiente
+  // NO se absorben (evita que el Plato B arrastre contenido del Plato C).
+  const mergeEnd = {};
+  (ws['!merges'] || []).forEach(m => { if (m.s.c === 1) mergeEnd[m.s.r] = m.e.r; });
+
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
 
   // ── Detectar mes ─────────────────────────────────────
@@ -1160,6 +1167,18 @@ function parseMenuExcel(wb) {
 
     i++;
     let currentCat = null;
+    let catEndRow = -1;
+    // Buffer de filas "huérfanas" por día: valores que aparecen entre el fin de
+    // una categoría (su celda combinada) y el encabezado de la siguiente.
+    // Se vuelcan a la PRÓXIMA categoría, aprovechando el orden fijo A,B,C,H,V.
+    const pending = {};
+
+    // Aux: agrega un valor a una categoría de fondo respetando el patrón
+    // "plato principal / acompañamiento".
+    function addFondo(dk, cat, value) {
+      if (!newMenu[dk][cat]) newMenu[dk][cat] = value;
+      else if (['A','B','C'].includes(cat)) newMenu[dk][cat] += ' / ' + value;
+    }
 
     while (i < rows.length) {
       const r = rows[i];
@@ -1173,7 +1192,26 @@ function parseMenuExcel(wb) {
 
       // Detectar categoría
       const detectedCat = detectCat(c1) || (c0 !== 'ALMUERZO' ? detectCat(c0) : null);
-      if (detectedCat) currentCat = detectedCat;
+      if (detectedCat) {
+        currentCat = detectedCat;
+        // La categoría ocupa solo las filas de su celda combinada en col B.
+        catEndRow = (mergeEnd[i] !== undefined) ? mergeEnd[i] : i;
+
+        // Volcar las filas huérfanas acumuladas hacia esta nueva categoría.
+        // El plato huérfano (principal) va primero; el contenido propio del
+        // encabezado (su acompañamiento) se agrega después en este mismo paso.
+        if (['A','B','C','H','V','L'].includes(currentCat)) {
+          for (const { raw } of dayCols) {
+            const md = raw.match(/(\d{1,2})[\/\-](\d{1,2})/);
+            if (!md) continue;
+            const dkf = md[1].padStart(2, '0') + '/' + md[2].padStart(2, '0');
+            if (!newMenu[dkf]) continue;
+            const buf = pending[dkf];
+            if (buf && buf.length) buf.forEach(ov => addFondo(dkf, currentCat, ov));
+            pending[dkf] = [];
+          }
+        }
+      }
 
       // Leer valores por día
       for (const { col, raw } of dayCols) {
@@ -1194,10 +1232,11 @@ function parseMenuExcel(wb) {
           newMenu[dk].pos.push(val);
         } else if (['A','B','C','H','V','L'].includes(currentCat)) {
           const cleaned = val.replace(/con ensaladas/i, '').trim();
-          if (!newMenu[dk][currentCat]) {
-            newMenu[dk][currentCat] = cleaned;
-          } else if (['A','B','C'].includes(currentCat)) {
-            newMenu[dk][currentCat] += ' / ' + cleaned;
+          if (i > catEndRow) {
+            // Fila huérfana: se guarda para la categoría siguiente.
+            (pending[dk] = pending[dk] || []).push(cleaned);
+          } else {
+            addFondo(dk, currentCat, cleaned);
           }
         }
       }
