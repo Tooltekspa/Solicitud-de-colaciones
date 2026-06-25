@@ -12,7 +12,7 @@
   --pale:#d6e8f7;--bg2:#e8f1fa;--bg:#f0f5fb;
   --sur:#fff;--sur2:#f5f8fd;--bor:#ccdcee;
   --txt:#0f2b4a;--mut:#6b87a8;
-  --red:#d94040;--grn:#1b9e6e;--pur:#5b6abf;--lim:#5a8a1a;--ora:#e88c30;
+  --red:#d94040;--grn:#1b9e6e;--pur:#5b6abf;--lim:#5a8a1a;--ora:#e88c30;--cian:#0e8aa8;
   --rad:14px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -161,7 +161,7 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .badge{display:inline-block;padding:3px 9px;border-radius:5px;font-size:.63rem;font-weight:700}
 .bA{background:rgba(34,113,179,.12);color:var(--azul)}.bB{background:rgba(91,106,191,.12);color:var(--pur)}
 .bH{background:rgba(27,158,110,.12);color:var(--grn)}.bV{background:rgba(90,138,26,.12);color:var(--lim)}
-.bL{background:rgba(232,140,48,.12);color:var(--ora)}.bAus{background:rgba(217,64,64,.1);color:var(--red)}
+.bL{background:rgba(232,140,48,.12);color:var(--ora)}.bC{background:rgba(14,138,168,.12);color:var(--cian)}.bAus{background:rgba(217,64,64,.1);color:var(--red)}
 .btn-edit{font-size:.69rem;color:var(--mut);background:none;border:none;cursor:pointer;font-weight:600;transition:color .14s}
 .btn-edit:hover{color:var(--azul2)}
 .rday-body{padding:11px 17px;font-size:.8rem;color:var(--mut);line-height:1.8}
@@ -434,6 +434,7 @@ footer span{color:var(--azul3)}
       <div class="sc"><div class="sc-l">Total días</div><div class="sc-v" id="sTot">0</div></div>
       <div class="sc"><div class="sc-l">Plato A</div><div class="sc-v" id="sA">0</div></div>
       <div class="sc"><div class="sc-l">Plato B</div><div class="sc-v" id="sB">0</div></div>
+      <div class="sc"><div class="sc-l">Plato C</div><div class="sc-v" style="color:var(--cian)" id="sC">0</div></div>
       <div class="sc"><div class="sc-l">Hipocalórico</div><div class="sc-v" style="color:var(--grn)" id="sH">0</div></div>
       <div class="sc"><div class="sc-l">Vegetariano</div><div class="sc-v" id="sV">0</div></div>
       <div class="sc"><div class="sc-l">Liviano</div><div class="sc-v" id="sL">0</div></div>
@@ -482,7 +483,7 @@ function borrarSesion() {
   sessionStorage.removeItem(SESSION_KEY);
 }
 
-const TL = {A:'Plato A',B:'Plato B',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia'};
+const TL = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia'};
 
 // Normaliza el campo mes: convierte "2026-06-01T04:00:00.000Z" → "Junio 2026"
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -496,8 +497,8 @@ function normalizarMes(mes) {
   if (isNaN(d.getTime())) return s.trim();
   return MESES_ES[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
 }
-const TC = {A:'var(--azul2)',B:'var(--pur)',H:'var(--grn)',V:'var(--lim)',L:'var(--ora)'};
-const TB = {A:'bA',B:'bB',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
+const TC = {A:'var(--azul2)',B:'var(--pur)',C:'var(--cian)',H:'var(--grn)',V:'var(--lim)',L:'var(--ora)'};
+const TB = {A:'bA',B:'bB',C:'bC',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 
 // ══════════════════════════════════════════════════════
 //  STORAGE
@@ -880,12 +881,12 @@ function renderSlide(dir='fwd') {
   else _tmp = {tipo:null,ens:null,pos:null};
   const selT=_tmp.tipo, selE=_tmp.ens||'', selP=_tmp.pos||'';
   const isHipo = selT === 'H';
-  const tiposDisp = [['A',d.A],['B',d.B],['H',d.H],['V',d.V]].filter(([,n])=>n);
+  const tiposDisp = [['A',d.A],['B',d.B],['C',d.C],['H',d.H],['V',d.V]].filter(([,n])=>n);
   if(d.L) tiposDisp.push(['L',d.L]);
   const ensSection = isHipo
     ? `<div class="hipo-note show">🥗 El plato hipocalórico ya incluye ensalada.</div>`
     : `<div class="chips" id="ensGrid">${(d.ens||[]).map(e=>`<div class="chip${selE===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div>`;
-  const refPlatos = [['A',d.A],['B',d.B],['H',d.H],['V',d.V]].filter(([,v])=>v);
+  const refPlatos = [['A',d.A],['B',d.B],['C',d.C],['H',d.H],['V',d.V]].filter(([,v])=>v);
   if(d.L) refPlatos.push(['L',d.L]);
   const refHTML = `<div class="menu-ref">
     <div class="menu-ref-title">📋 Menú completo del día</div>
@@ -975,7 +976,7 @@ function buildResumen() {
     const d = MENU[dk], c = choices[dk];
     if(c && !c.ausente) hasSel = true;
     const div = document.createElement('div'); div.className = 'rday';
-    const fm = {A:d.A,B:d.B,H:d.H,V:d.V,L:d.L};
+    const fm = {A:d.A,B:d.B,C:d.C,H:d.H,V:d.V,L:d.L};
     if (!c) {
       div.innerHTML=`<div class="rday-head"><div class="rdc">${d.label} <span style="font-weight:400;font-size:.73rem;color:var(--mut)">${d.full}</span></div><div class="rdd"><button class="btn-edit" onclick="editDay(${i})">+ Agregar</button></div></div>`;
     } else if (c.ausente) {
@@ -1005,7 +1006,7 @@ async function submitFinal() {
   const dias   = DATES.map(dk => {
     const d = MENU[dk], c = choices[dk];
     if (!c) return null;
-    const fm = {A:d.A,B:d.B,H:d.H,V:d.V,L:d.L};
+    const fm = {A:d.A,B:d.B,C:d.C,H:d.H,V:d.V,L:d.L};
     if (c.ausente) return {fecha:dk,fechaLabel:d.label,fechaFull:d.full,tipo:'AUS',ausente:true,ens:'',pos:'',fondo:'Ausencia'};
     return {fecha:dk,fechaLabel:d.label,fechaFull:d.full,tipo:c.tipo,ausente:false,ens:c.tipo==='H'?'(incluida)':c.ens||'',pos:c.pos||'',fondo:fm[c.tipo]||''};
   }).filter(Boolean);
@@ -1065,6 +1066,7 @@ function parseMenuExcel(wb) {
     'ENSALADAS': 'ENS',
     'PLATO DE FONDO CON ACOMPANAMIENTO A': 'A',
     'PLATO DE FONDO CON ACOMPANAMIENTO B': 'B',
+    'PLATO DE FONDO CON ACOMPANAMIENTO C': 'C',
     'FONDO HIPOCALORICO': 'H',
     'FONDO VEGETARIANO': 'V',
     'POSTRES': 'POS',
@@ -1088,6 +1090,7 @@ function parseMenuExcel(wb) {
     if (n.includes('ENSALAD')) return 'ENS';
     if (n.includes('ACOMP') && /\bA$/.test(n)) return 'A';
     if (n.includes('ACOMP') && /\bB$/.test(n)) return 'B';
+    if (n.includes('ACOMP') && /\bC$/.test(n)) return 'C';
     return null;
   }
 
@@ -1150,7 +1153,7 @@ function parseMenuExcel(wb) {
         label: parseDow(raw) + ' ' + mDate[1].padStart(2, '0'),
         full: raw.replace(/\s*[-–]\s*/g, ' ').trim(),
         semana: semLabel,
-        ens: [], A: '', B: '', H: '', V: '', L: '', pos: [],
+        ens: [], A: '', B: '', C: '', H: '', V: '', L: '', pos: [],
         feriado: false,
       };
     }
@@ -1189,11 +1192,11 @@ function parseMenuExcel(wb) {
           newMenu[dk].ens.push(stripEns(val));
         } else if (currentCat === 'POS') {
           newMenu[dk].pos.push(val);
-        } else if (['A','B','H','V','L'].includes(currentCat)) {
+        } else if (['A','B','C','H','V','L'].includes(currentCat)) {
           const cleaned = val.replace(/con ensaladas/i, '').trim();
           if (!newMenu[dk][currentCat]) {
             newMenu[dk][currentCat] = cleaned;
-          } else if (['A','B'].includes(currentCat)) {
+          } else if (['A','B','C'].includes(currentCat)) {
             newMenu[dk][currentCat] += ' / ' + cleaned;
           }
         }
@@ -1255,7 +1258,7 @@ function renderMenuPreview() {
     html+=`<div class="mpweek-title">${sem}</div><div class="mpdays">`;
     for(const dk of dks){
       const d=MENU[dk];
-      html+=`<div class="mpday"><div class="mpday-lbl">${d.label}</div><div class="mprow"><strong>A:</strong> ${(d.A||'').substring(0,35)}…</div><div class="mprow"><strong>B:</strong> ${(d.B||'').substring(0,35)}…</div><div class="mprow"><strong>H:</strong> ${(d.H||'').substring(0,33)}…</div></div>`;
+      html+=`<div class="mpday"><div class="mpday-lbl">${d.label}</div><div class="mprow"><strong>A:</strong> ${(d.A||'').substring(0,35)}…</div><div class="mprow"><strong>B:</strong> ${(d.B||'').substring(0,35)}…</div><div class="mprow"><strong>C:</strong> ${(d.C||'').substring(0,35)}…</div><div class="mprow"><strong>H:</strong> ${(d.H||'').substring(0,33)}…</div></div>`;
     }
     html+=`</div>`;
   }
@@ -1319,14 +1322,15 @@ function renderStats(solMes) {
   if(!solMes.length){el.style.display='none';return;}
   el.style.display='grid';
   document.getElementById('sPer').textContent=solMes.length;
-  let tot=0,a=0,b=0,h=0,v=0,l=0,aus=0;
+  let tot=0,a=0,b=0,c=0,h=0,v=0,l=0,aus=0;
   solMes.forEach(p=>p.dias.forEach(d=>{
     if(d.ausente)aus++;
-    else{tot++;if(d.tipo==='A')a++;else if(d.tipo==='B')b++;else if(d.tipo==='H')h++;else if(d.tipo==='V')v++;else if(d.tipo==='L')l++;}
+    else{tot++;if(d.tipo==='A')a++;else if(d.tipo==='B')b++;else if(d.tipo==='C')c++;else if(d.tipo==='H')h++;else if(d.tipo==='V')v++;else if(d.tipo==='L')l++;}
   }));
   document.getElementById('sTot').textContent=tot;
   document.getElementById('sA').textContent=a;
   document.getElementById('sB').textContent=b;
+  document.getElementById('sC').textContent=c;
   document.getElementById('sH').textContent=h;
   document.getElementById('sV').textContent=v;
   document.getElementById('sL').textContent=l;
@@ -1395,7 +1399,7 @@ function renderResumen(solMes) {
     }
 
     // Contadores por tipo de plato
-    const cnt={A:0,B:0,H:0,V:0,L:0,AUS:0};
+    const cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0};
     // Ensaladas: solo de quienes NO pidieron hipocalórico
     const ensCount={};
     // Postres: todos
@@ -1413,7 +1417,7 @@ function renderResumen(solMes) {
       if(dia.pos) posCount[dia.pos]=(posCount[dia.pos]||0)+1;
     });
 
-    const totalAlmuerzo=cnt.A+cnt.B+cnt.H+cnt.V+cnt.L;
+    const totalAlmuerzo=cnt.A+cnt.B+cnt.C+cnt.H+cnt.V+cnt.L;
     if(!totalAlmuerzo && !cnt.AUS) return '';
 
     // ── Ensaladas: TODAS las del menú con 0 si no fue pedida ──
@@ -1427,7 +1431,7 @@ function renderResumen(solMes) {
 
     // ── Almuerzos: TODOS los del menú con 0 si no fue pedido ──
     var almRows='';
-    [['A',dUse.A],['B',dUse.B],['H',dUse.H],['V',dUse.V],['L',dUse.L||'']].forEach(function(x){
+    [['A',dUse.A],['B',dUse.B],['C',dUse.C||''],['H',dUse.H],['V',dUse.V],['L',dUse.L||'']].forEach(function(x){
       var t=x[0], plato=x[1]||'', n=cnt[t]||0;
       if(!plato && !n) return;
       var isH=(t==='H');
@@ -1602,10 +1606,10 @@ function ejecutarImpresion(dk) {
       if (dia.fondo && dia.tipo && !dUse[dia.tipo]) dUse[dia.tipo]=dia.fondo;
     });
   }
-  var TL_l = {A:'Plato A',B:'Plato B',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
-  var cnt={A:0,B:0,H:0,V:0,L:0,AUS:0};
+  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
+  var cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0};
   var ensCount={}, posCount={};
-  var listaPT={A:[],B:[],H:[],V:[],L:[],AUS:[]};
+  var listaPT={A:[],B:[],C:[],H:[],V:[],L:[],AUS:[]};
   solMes.forEach(function(p){
     var dia=p.dias.find(function(x){return x.fecha===dk;});
     if(!dia) return;
@@ -1614,11 +1618,11 @@ function ejecutarImpresion(dk) {
     if(dia.tipo!=='H'&&dia.ens&&dia.ens!=='(incluida)'&&dia.ens!=='') ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;
     if(dia.pos) posCount[dia.pos]=(posCount[dia.pos]||0)+1;
   });
-  var totAlm=cnt.A+cnt.B+cnt.H+cnt.V+cnt.L;
+  var totAlm=cnt.A+cnt.B+cnt.C+cnt.H+cnt.V+cnt.L;
   var totEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
   var totPos=Object.values(posCount).reduce(function(a,b){return a+b;},0);
   var fMen='';
-  [['A',dUse.A],['B',dUse.B],['H',dUse.H],['V',dUse.V],['L',dUse.L||'']].forEach(function(x){
+  [['A',dUse.A],['B',dUse.B],['C',dUse.C||''],['H',dUse.H],['V',dUse.V],['L',dUse.L||'']].forEach(function(x){
     var t=x[0],pl=x[1]||'',n=cnt[t]||0;
     if(!pl&&!n) return;
     var desc=pl?(t==='H'?pl+' CON ENSALADAS':pl):TL_l[t];
