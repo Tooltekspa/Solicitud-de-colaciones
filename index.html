@@ -456,11 +456,15 @@ footer span{color:var(--azul3)}
 //  CONFIGURACIÓN
 // ══════════════════════════════════════════════════════
 const WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbwJAJCQvebUF6Ja0yV9R7B2DKvWxced_A7gGdFXbEEyXlMfbCbHtZK7O7Cw9gt0E9JqjQ/exec';
-const PWD_HASH = '8e15ebfdc1576a10305cf85dfde64b50e0c934c5cb03ff03fbcd0fa095d84272';
+// Clave de administrador: NO se guarda en texto plano. Aquí va solo su huella
+// La contraseña de administrador NO está en este código. Vive solo en el
+// servidor (Apps Script → Propiedades del proyecto → ADMIN_PWD). El login
+// envía SHA-256 de lo que se escribe y el GAS lo compara contra ADMIN_PWD.
 async function sha256Hex(txt){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
   return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
 }
+let ADMIN_TOKEN = '';
 
 let MENU = {};
 let DATES = [];
@@ -837,19 +841,28 @@ function switchView(v, e) {
 //  LOGIN ADMIN — valida contra GAS, no en el navegador
 // ══════════════════════════════════════════════════════
 async function checkPass() {
-  const v   = document.getElementById('adminPass').value;
   const inp = document.getElementById('adminPass');
-  let ok = false;
-  try { ok = (await sha256Hex(v)) === PWD_HASH; } catch(e){ ok = false; }
-  if (ok) {
-    adminOk = true;
-    document.getElementById('modalPwd').classList.add('hidden');
-    inp.value = '';
-    document.getElementById('passErr').textContent = '';
-    openAdmin();
-  } else {
+  const err = document.getElementById('passErr');
+  const v   = inp.value;
+  err.style.color = '';
+  err.textContent = 'Verificando...';
+  try {
+    const hash = await sha256Hex(v);                    // se envía el hash, nunca la clave
+    const res  = await gasJSONP('verificar_pwd', {pwd: hash});
+    if (res && res.ok) {
+      adminOk = true;
+      ADMIN_TOKEN = res.token || '';
+      document.getElementById('modalPwd').classList.add('hidden');
+      inp.value = '';
+      err.textContent = '';
+      openAdmin();
+      return;
+    }
+    throw new Error((res && res.error) || 'Contraseña incorrecta.');
+  } catch(e) {
     inp.classList.add('err');
-    document.getElementById('passErr').textContent = 'Contrasena incorrecta.';
+    const net = /Timeout|cargar/i.test(e.message || '');
+    err.textContent = net ? 'No se pudo conectar con el servidor.' : (e.message || 'Contraseña incorrecta.');
     setTimeout(function(){ inp.classList.remove('err'); }, 350);
     inp.value = '';
     inp.focus();
