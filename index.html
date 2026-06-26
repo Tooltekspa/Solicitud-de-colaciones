@@ -456,9 +456,6 @@ footer span{color:var(--azul3)}
 //  CONFIGURACIÓN
 // ══════════════════════════════════════════════════════
 const WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbwJAJCQvebUF6Ja0yV9R7B2DKvWxced_A7gGdFXbEEyXlMfbCbHtZK7O7Cw9gt0E9JqjQ/exec';
-// Clave de administrador: NO se guarda en texto plano. Aquí va solo su huella
-// SHA-256, así nadie puede leer la contraseña abriendo el código.
-// Para cambiarla, genera el nuevo hash y reemplaza esta línea (ver nota al final).
 const PWD_HASH = '8e15ebfdc1576a10305cf85dfde64b50e0c934c5cb03ff03fbcd0fa095d84272';
 async function sha256Hex(txt){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
