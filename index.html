@@ -456,7 +456,14 @@ footer span{color:var(--azul3)}
 //  CONFIGURACIÓN
 // ══════════════════════════════════════════════════════
 const WEBHOOK_URL  = 'https://script.google.com/macros/s/AKfycbwJAJCQvebUF6Ja0yV9R7B2DKvWxced_A7gGdFXbEEyXlMfbCbHtZK7O7Cw9gt0E9JqjQ/exec';
-const PWD = 'Tooltek|0310';
+// Clave de administrador: NO se guarda en texto plano. Aquí va solo su huella
+// SHA-256, así nadie puede leer la contraseña abriendo el código.
+// Para cambiarla, genera el nuevo hash y reemplaza esta línea (ver nota al final).
+const PWD_HASH = '8e15ebfdc1576a10305cf85dfde64b50e0c934c5cb03ff03fbcd0fa095d84272';
+async function sha256Hex(txt){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+}
 
 let MENU = {};
 let DATES = [];
@@ -832,10 +839,12 @@ function switchView(v, e) {
 // ══════════════════════════════════════════════════════
 //  LOGIN ADMIN — valida contra GAS, no en el navegador
 // ══════════════════════════════════════════════════════
-function checkPass() {
+async function checkPass() {
   const v   = document.getElementById('adminPass').value;
   const inp = document.getElementById('adminPass');
-  if (v === PWD) {
+  let ok = false;
+  try { ok = (await sha256Hex(v)) === PWD_HASH; } catch(e){ ok = false; }
+  if (ok) {
     adminOk = true;
     document.getElementById('modalPwd').classList.add('hidden');
     inp.value = '';
