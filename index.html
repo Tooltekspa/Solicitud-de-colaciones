@@ -185,7 +185,7 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .btn-nueva{padding:12px 26px;background:var(--sur);border:1.5px solid var(--bor);color:var(--txt);
   font-family:'Syne',sans-serif;font-weight:700;font-size:.87rem;border-radius:9px;cursor:pointer;transition:all .2s}
 .btn-nueva:hover{border-color:var(--azul2);color:var(--azul2)}
-.admin-wrap{max-width:1100px;margin:0 auto;padding:28px 20px}
+.admin-wrap{max-width:1320px;margin:0 auto;padding:28px 20px}
 .admin-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:22px}
 .admin-top h2{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--azul);letter-spacing:-.8px}
 .abtn-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -222,6 +222,7 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .sc-l{font-size:.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-bottom:3px}
 .sc-v{font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:800;color:var(--azul)}
 .tbl-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:12px;overflow:hidden;margin-bottom:18px}
+.tbl-wrap.amplio{width:94vw;max-width:none;margin-left:50%;transform:translateX(-50%);box-shadow:0 12px 40px rgba(26,79,138,.16)}
 .tbl-hdr{padding:11px 16px;border-bottom:1px solid var(--bor);background:linear-gradient(90deg,rgba(34,113,179,.04),transparent);
   display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .tbl-hdr h3{font-family:'Syne',sans-serif;font-weight:700;font-size:.87rem;color:var(--azul)}
@@ -271,17 +272,19 @@ tr:hover td{background:rgba(34,113,179,.025)}
 .rc3 tfoot tr.rtot td:last-child{font-family:'Syne',sans-serif;font-weight:800;color:#1b9e6e;font-size:.88rem;text-align:right;}
 .rc3 tfoot tr.rtot:last-child td{border-bottom:1px solid #d0d7e3;}
 footer{text-align:center;padding:22px;font-size:.7rem;color:var(--mut);border-top:1px solid var(--bor)}
-.sheet-tbl-wrap{overflow-x:auto;max-height:520px;overflow-y:auto}
-.sheet-table{border-collapse:collapse;font-size:.75rem;width:100%}
-.sheet-table th{background:#4472c4;color:#fff;font-weight:700;padding:7px 12px;
+.sheet-tbl-wrap{overflow-x:auto;max-height:72vh;overflow-y:auto}
+.sheet-table{border-collapse:collapse;font-size:.82rem;width:100%}
+.sheet-table th{background:#4472c4;color:#fff;font-weight:700;padding:9px 14px;
   text-align:left;border:1px solid #3561aa;white-space:nowrap;position:sticky;top:0;z-index:2}
-.sheet-table td{padding:6px 12px;border:1px solid #d0d7e3;vertical-align:middle}
+.sheet-table td{padding:8px 14px;border:1px solid #d0d7e3;vertical-align:middle}
 .sheet-table tr:nth-child(even) td{background:#f2f6fc}
 .sheet-table tr:hover td{background:#dce8f8}
 .sheet-table td.ausencia{color:#999;font-style:italic;text-align:center;background:#f8f8f8}
-.sheet-table td.col-plato{max-width:200px;white-space:normal;line-height:1.35}
-.sheet-table td.col-ts{color:#666;font-size:.71rem;white-space:nowrap}
-.sheet-table td.col-nombre{font-weight:700;color:var(--azul);white-space:nowrap}
+.sheet-table td.col-plato{min-width:150px;max-width:260px;white-space:normal;line-height:1.4}
+.sheet-table td.col-ts{color:#666;font-size:.74rem;white-space:nowrap}
+.sheet-table td.col-nombre{font-weight:700;color:var(--azul);white-space:nowrap;position:sticky;left:0;z-index:1;background:#eaf1fb}
+.sheet-table tr:nth-child(even) td.col-nombre{background:#e1ebf7}
+.sheet-table thead th:first-child{position:sticky;left:0;z-index:3}
 footer span{color:var(--azul3)}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);opacity:0;
   background:var(--azul);color:#fff;border-radius:9px;padding:10px 20px;font-size:.81rem;font-weight:600;
@@ -450,12 +453,14 @@ footer span{color:var(--azul3)}
         <h3>Solicitudes recibidas</h3>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <div class="flt-row" id="fltRow"></div>
-          <button class="abtn ao" onclick="imprimirSolicitudes()" style="font-size:.75rem">🖨 Imprimir solicitudes</button>
+          <button class="abtn ag" id="btnAmpliar" onclick="toggleAmplio()" style="font-size:.75rem">⛶ Ampliar</button>
+          <button class="abtn ao" onclick="abrirSelectorDia('detalle')" style="font-size:.75rem">🖨 Imprimir un día</button>
+          <button class="abtn ap" onclick="imprimirTodos('detalle')" style="font-size:.75rem">🖨 Imprimir todos</button>
         </div>
       </div>
       <div id="tblBody" style="overflow-x:auto"></div>
     </div>
-    <div id="resSection" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px"><div class="pill" style="margin-bottom:0">Conteo por dia</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="abtn ao" onclick="imprimirDia()" style="font-size:.75rem">🖨 Imprimir un día</button><button class="abtn ap" onclick="imprimirTodosLosDias()" style="font-size:.75rem">🖨 Imprimir todos</button></div></div>
+    <div id="resSection" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px"><div class="pill" style="margin-bottom:0">Conteo por dia</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="abtn ao" onclick="abrirSelectorDia('conteo')" style="font-size:.75rem">🖨 Imprimir un día</button><button class="abtn ap" onclick="imprimirTodos('conteo')" style="font-size:.75rem">🖨 Imprimir todos</button></div></div>
       <div class="res-grid" id="resGrid"></div>
     </div>
   </div>
@@ -1671,9 +1676,9 @@ function renderTable(solMes) {
   const diasOrden=DATES.length
     ? DATES.filter(function(dk){return diasMap[dk]||solMes.some(function(p){return p.dias.find(function(d){return d.fecha===dk;});});})
     : Object.keys(diasMap).sort();
-  const headers=['Marca temporal','Nombre'].concat(diasOrden.map(dk=>{const d=MENU[dk];return d?d.label+' '+dk:diasMap[dk]||dk;}));
+  const headers=['Nombre','Marca temporal'].concat(diasOrden.map(dk=>{const d=MENU[dk];return d?d.label+' '+dk:diasMap[dk]||dk;}));
   const bodyHTML=solMes.map(function(p){
-    let tds='<td class="col-ts">'+(p.fecha_reg+(p.hora?' '+p.hora:''))+'</td><td class="col-nombre">'+p.nombre+'</td>';
+    let tds='<td class="col-nombre">'+p.nombre+'</td><td class="col-ts">'+(p.fecha_reg+(p.hora?' '+p.hora:''))+'</td>';
     diasOrden.forEach(function(dk){
       const dia=(p.dias||[]).find(function(d){return d.fecha===dk;});
       let cls='col-plato', txt='—';
@@ -1692,7 +1697,7 @@ function renderTable(solMes) {
     return '<tr>'+tds+'</tr>';
   }).join('');
   tb.innerHTML = '<div class="sheet-tbl-wrap"><table class="sheet-table">' +
-    '<thead><tr>' + headers.map((h,i) => '<th class="' + (i===0?'col-ts':i===1?'col-nombre':'col-dia') + '">' + h + '</th>').join('') + '</tr></thead>' +
+    '<thead><tr>' + headers.map((h,i) => '<th class="' + (i===0?'col-nombre':i===1?'col-ts':'col-dia') + '">' + h + '</th>').join('') + '</tr></thead>' +
     '<tbody>' + bodyHTML + '</tbody>' +
     '</table></div>';
   tb.querySelectorAll('.celda-edit').forEach(function(td){
@@ -1966,7 +1971,8 @@ function generarEnlacePersona(){
 // ══════════════════════════════════════════════════════
 //  IMPRIMIR DIA
 // ══════════════════════════════════════════════════════
-function imprimirDia() {
+// Selector de día reutilizable. modo: 'conteo' (cantidades) | 'detalle' (lista de personas)
+function abrirSelectorDia(modo) {
   var solMes = solicitudes.filter(function(s){ return s.mes === menuMes; });
   if (!solMes.length) { showToast('Sin solicitudes para imprimir'); return; }
   var diasKeys = DATES.length ? DATES : (function(){
@@ -1980,9 +1986,13 @@ function imprimirDia() {
   var inner = document.createElement('div');
   inner.style.cssText = 'background:#fff;border-radius:18px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 24px 56px rgba(26,79,138,.25);max-height:80vh;overflow-y:auto';
   var titulo = document.createElement('div');
-  titulo.style.cssText = 'font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;color:var(--azul);margin-bottom:16px';
-  titulo.textContent = 'Selecciona el dia a imprimir';
+  titulo.style.cssText = 'font-family:Syne,sans-serif;font-weight:800;font-size:1.1rem;color:var(--azul);margin-bottom:4px';
+  titulo.textContent = 'Selecciona el día a imprimir';
   inner.appendChild(titulo);
+  var sub = document.createElement('div');
+  sub.style.cssText = 'font-size:.78rem;color:var(--mut);margin-bottom:16px';
+  sub.textContent = modo==='detalle' ? 'Lista de personas y su pedido' : 'Conteo de cantidades para cocina';
+  inner.appendChild(sub);
   var lista = document.createElement('div');
   lista.style.cssText = 'display:flex;flex-direction:column;gap:6px';
   diasKeys.forEach(function(dk) {
@@ -1993,7 +2003,7 @@ function imprimirDia() {
     btn.textContent = label;
     btn.onmouseover = function(){ this.style.borderColor='var(--azul2)'; this.style.background='var(--bg2)'; };
     btn.onmouseout  = function(){ this.style.borderColor='var(--bor)';   this.style.background='var(--sur2)'; };
-    btn.onclick = (function(dk2){ return function(){ overlay.remove(); ejecutarImpresion(dk2); }; })(dk);
+    btn.onclick = (function(dk2){ return function(){ overlay.remove(); imprimirUnDia(dk2, modo); }; })(dk);
     lista.appendChild(btn);
   });
   inner.appendChild(lista);
@@ -2027,9 +2037,8 @@ function _printCSS(){
     '@media print{body{padding:8px} .pagina{page-break-after:always}}';
 }
 
-// Devuelve las 2 páginas (conteo + detalle) de un día. Reutilizado por
-// "Imprimir un día" y por "Imprimir todos".
-function _diaBloqueHTML(dk, solMes){
+// Calcula los datos de un día (compartido por las dos impresiones)
+function _diaDatos(dk, solMes){
   var d = MENU[dk];
   var dUse = d || {full:dk, label:dk, ens:[], pos:[], A:'', B:'', H:'', V:'', L:''};
   if (!d) {
@@ -2040,20 +2049,27 @@ function _diaBloqueHTML(dk, solMes){
       if (dia.fondo && dia.tipo && !dUse[dia.tipo]) dUse[dia.tipo]=dia.fondo;
     });
   }
-  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
   var cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0};
   var ensCount={}, posCount={};
-  var listaPT={A:[],B:[],C:[],H:[],V:[],L:[],AUS:[]};
+  var personasDia=[], ausentes=[];
   solMes.forEach(function(p){
     var dia=p.dias.find(function(x){return x.fecha===dk;});
     if(!dia) return;
-    if(dia.ausente){cnt.AUS++;listaPT.AUS.push(p.nombre);return;}
-    if(cnt[dia.tipo]!==undefined){cnt[dia.tipo]++;listaPT[dia.tipo].push(p.nombre);}
+    if(dia.ausente){ cnt.AUS++; ausentes.push(p.nombre); return; }
+    if(cnt[dia.tipo]!==undefined) cnt[dia.tipo]++;
     if(dia.tipo!=='H'&&dia.ens&&dia.ens!=='(incluida)'&&dia.ens!=='') ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;
     if(dia.pos) posCount[dia.pos]=(posCount[dia.pos]||0)+1;
+    personasDia.push({nombre:p.nombre, tipo:dia.tipo, fondo:dia.fondo||'', ens:dia.tipo==='H'?'(incluida)':(dia.ens||''), pos:dia.pos||''});
   });
+  personasDia.sort(function(a,b){ var ord={A:0,B:1,C:2,H:3,V:4,L:5}; return (ord[a.tipo]||9)-(ord[b.tipo]||9); });
+  return {dUse:dUse, cnt:cnt, ensCount:ensCount, posCount:posCount, personasDia:personasDia, ausentes:ausentes};
+}
+
+// Página de CONTEO de un día (cantidades para cocina)
+function _diaConteoPagina(dk, solMes){
+  var X=_diaDatos(dk, solMes), dUse=X.dUse, cnt=X.cnt, ensCount=X.ensCount, posCount=X.posCount;
+  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
   var totAlm=cnt.A+cnt.B+cnt.C+cnt.H+cnt.V+cnt.L;
-  // Si nadie pidió este día, no genera páginas
   if(!totAlm && !cnt.AUS) return '';
   var totEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
   var totPos=Object.values(posCount).reduce(function(a,b){return a+b;},0);
@@ -2062,8 +2078,7 @@ function _diaBloqueHTML(dk, solMes){
     var t=x[0],pl=x[1]||'',n=cnt[t]||0;
     if(!pl&&!n) return;
     var desc=pl?(t==='H'?pl+' CON ENSALADAS':pl):TL_l[t];
-    fMen+='<tr'+(t==='H'&&n?' class="rh"':'')+(n===0?' class="z"':'')+'>'+
-      '<td class="rt">'+TL_l[t]+'</td><td>'+desc+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';
+    fMen+='<tr'+(t==='H'&&n?' class="rh"':'')+(n===0?' class="z"':'')+'><td class="rt">'+TL_l[t]+'</td><td>'+desc+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';
   });
   var fEns='';
   var ek=(dUse.ens&&dUse.ens.length)?dUse.ens:Object.keys(ensCount);
@@ -2072,25 +2087,9 @@ function _diaBloqueHTML(dk, solMes){
   var pk=(dUse.pos&&dUse.pos.length)?dUse.pos:Object.keys(posCount);
   pk.forEach(function(p){var n=posCount[p]||0;fPos+='<tr'+(n===0?' class="z"':'')+'><td class="rt">Postre</td><td>'+p+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';});
   var ausR=cnt.AUS?'<tr class="z"><td class="rt">Ausencias</td><td>No asiste</td><td class="rn">'+cnt.AUS+'</td></tr>':'';
-  // Lista detallada por persona
-  var listaDetalle='';
-  var personasDia=[];
-  solMes.forEach(function(p){
-    var dia=p.dias.find(function(x){return x.fecha===dk;});
-    if(!dia||dia.ausente) return;
-    personasDia.push({nombre:p.nombre, tipo:dia.tipo, fondo:dia.fondo||'', ens:dia.tipo==='H'?'(incluida)':(dia.ens||''), pos:dia.pos||''});
-  });
-  personasDia.sort(function(a,b){ var ord={A:0,B:1,H:2,V:3,L:4}; return (ord[a.tipo]||9)-(ord[b.tipo]||9); });
-  personasDia.forEach(function(p,i){
-    listaDetalle+='<tr'+(i%2===1?' style="background:#f5f8fd"':'')+'>'
-      +'<td style="font-weight:600;color:#1a4f8a">'+(i+1)+'. '+p.nombre+'</td>'
-      +'<td class="rt2">'+TL_l[p.tipo]+'</td><td>'+p.ens+'</td><td>'+p.fondo+'</td><td>'+p.pos+'</td></tr>';
-  });
-  if(cnt.AUS){ listaPT.AUS.forEach(function(n){ listaDetalle+='<tr style="color:#bbb"><td colspan="5">'+n+' &mdash; Ausencia</td></tr>'; }); }
-  var gen=new Date().toLocaleString('es-CL');
   return '<div class="pagina">'+
-    '<h1>Colaciones - '+dUse.full+'</h1>'+
-    '<div class="sub">Mes: '+menuMes+' - Generado: '+gen+' - TOOLTEK</div>'+
+    '<h1>Conteo - '+dUse.full+'</h1>'+
+    '<div class="sub">Mes: '+menuMes+' - Generado: '+new Date().toLocaleString('es-CL')+' - TOOLTEK</div>'+
     '<div class="sec">CONTEO DE ALMUERZOS</div>'+
     '<table><thead><tr><th>Tipo</th><th>Descripcion</th><th class="rn">Total</th></tr></thead>'+
     '<tbody>'+fMen+fEns+fPos+ausR+'</tbody>'+
@@ -2098,17 +2097,29 @@ function _diaBloqueHTML(dk, solMes){
     (totEns?'<tr><td></td><td>Total ensaladas</td><td class="rn">'+totEns+'</td></tr>':'')+
     '<tr><td></td><td>Total almuerzos</td><td class="rn">'+totAlm+'</td></tr>'+
     (totPos?'<tr><td></td><td>Total postres</td><td class="rn">'+totPos+'</td></tr>':'')+
-    '</tfoot></table>'+
-    '</div>'+
-    '<div class="pagina">'+
-    '<h1>Colaciones - '+dUse.full+' (Lista de personas)</h1>'+
-    '<div class="sub">Mes: '+menuMes+' - Generado: '+gen+' - TOOLTEK</div>'+
+    '</tfoot></table></div>';
+}
+
+// Página de DETALLE de un día (lista de personas y su pedido)
+function _diaDetallePagina(dk, solMes){
+  var X=_diaDatos(dk, solMes), dUse=X.dUse, personasDia=X.personasDia, ausentes=X.ausentes;
+  if(!personasDia.length && !ausentes.length) return '';
+  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
+  var rows='';
+  personasDia.forEach(function(p,i){
+    rows+='<tr'+(i%2===1?' style="background:#f5f8fd"':'')+'>'
+      +'<td style="font-weight:600;color:#1a4f8a">'+(i+1)+'. '+p.nombre+'</td>'
+      +'<td class="rt2">'+TL_l[p.tipo]+'</td><td>'+p.ens+'</td><td>'+p.fondo+'</td><td>'+p.pos+'</td></tr>';
+  });
+  ausentes.forEach(function(n){ rows+='<tr style="color:#bbb"><td colspan="5">'+n+' &mdash; Ausencia</td></tr>'; });
+  return '<div class="pagina">'+
+    '<h1>Solicitudes - '+dUse.full+'</h1>'+
+    '<div class="sub">Mes: '+menuMes+' - Generado: '+new Date().toLocaleString('es-CL')+' - TOOLTEK</div>'+
     '<div class="sec">DETALLE POR PERSONA</div>'+
     '<table><thead><tr><th>Nombre</th><th>Tipo</th><th>Ensalada</th><th>Almuerzo</th><th>Postre</th></tr></thead>'+
-    '<tbody>'+listaDetalle+'</tbody>'+
-    '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:700">Total personas:</td><td class="rn">'+personasDia.length+(cnt.AUS?' + '+cnt.AUS+' aus.':'')+'</td></tr></tfoot>'+
-    '</table>'+
-    '</div>';
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:700">Total personas:</td><td class="rn">'+personasDia.length+(ausentes.length?' + '+ausentes.length+' aus.':'')+'</td></tr></tfoot>'+
+    '</table></div>';
 }
 
 function _abrirImpresion(titulo, cuerpoHTML){
@@ -2120,62 +2131,35 @@ function _abrirImpresion(titulo, cuerpoHTML){
   setTimeout(function(){win.print();},400);
 }
 
-// Imprime UN solo día (conteo + lista de personas)
-function ejecutarImpresion(dk) {
+// Imprime UN solo día. modo: 'conteo' (cantidades) | 'detalle' (lista de personas)
+function imprimirUnDia(dk, modo){
   var solMes = solicitudes.filter(function(s){ return s.mes === menuMes; });
-  var bloque = _diaBloqueHTML(dk, solMes);
-  if(!bloque){ showToast('Sin pedidos para ese día'); return; }
-  _abrirImpresion('Colaciones '+(MENU[dk]?MENU[dk].full:dk), bloque);
+  var pagina = modo==='detalle' ? _diaDetallePagina(dk, solMes) : _diaConteoPagina(dk, solMes);
+  if(!pagina){ showToast('Sin pedidos para ese día'); return; }
+  var pre = modo==='detalle' ? 'Solicitudes ' : 'Conteo ';
+  _abrirImpresion(pre+(MENU[dk]?MENU[dk].full:dk), pagina);
 }
 
-// Imprime TODOS los días del mes, uno por página
-function imprimirTodosLosDias() {
+// Imprime TODOS los días del mes, uno por página. modo: 'conteo' | 'detalle'
+function imprimirTodos(modo){
   var solMes = solicitudes.filter(function(s){ return s.mes === menuMes; });
   if(!solMes.length){ showToast('Sin solicitudes para imprimir'); return; }
   var diasKeys = DATES.length ? DATES : (function(){
     var dm={}; solMes.forEach(function(p){(p.dias||[]).forEach(function(d){if(!dm[d.fecha])dm[d.fecha]=1;});}); return Object.keys(dm).sort();
   })();
-  var cuerpo = diasKeys.map(function(dk){ return _diaBloqueHTML(dk, solMes); }).filter(Boolean).join('');
+  var cuerpo = diasKeys.map(function(dk){ return modo==='detalle' ? _diaDetallePagina(dk, solMes) : _diaConteoPagina(dk, solMes); }).filter(Boolean).join('');
   if(!cuerpo){ showToast('Sin pedidos para imprimir'); return; }
-  _abrirImpresion('Colaciones '+menuMes+' - todos los días', cuerpo);
+  var t = modo==='detalle' ? ('Solicitudes '+menuMes+' - lista por día') : ('Conteo '+menuMes+' - todos los días');
+  _abrirImpresion(t, cuerpo);
 }
 
-// Imprime la planilla completa de solicitudes (personas x días)
-function imprimirSolicitudes() {
-  var solMes = solicitudes.filter(function(s){ return s.mes === menuMes; });
-  if(!solMes.length){ showToast('Sin solicitudes para imprimir'); return; }
-  var diasMap={};
-  solMes.forEach(function(p){(p.dias||[]).forEach(function(d){if(!diasMap[d.fecha])diasMap[d.fecha]=1;});});
-  var diasKeys = DATES.length ? DATES.filter(function(dk){return diasMap[dk];}) : Object.keys(diasMap).sort();
-  var ths = diasKeys.map(function(dk){ var d=MENU[dk]; return '<th>'+(d?d.label:dk)+'<br><span style="font-weight:400;opacity:.8">'+dk+'</span></th>'; }).join('');
-  var rows = solMes.map(function(p,i){
-    var tds = diasKeys.map(function(dk){
-      var dia=(p.dias||[]).find(function(x){return x.fecha===dk;});
-      if(!dia) return '<td class="z" style="text-align:center">&mdash;</td>';
-      if(dia.ausente) return '<td class="aus">AUS</td>';
-      var partes=[]; if(dia.fondo)partes.push(dia.fondo); if(dia.ens&&dia.ens!=='(incluida)')partes.push(dia.ens); if(dia.pos)partes.push(dia.pos);
-      return '<td>'+(partes.join('<br>')||'&mdash;')+'</td>';
-    }).join('');
-    return '<tr'+(i%2===1?' class="alt"':'')+'><td class="nm">'+(i+1)+'. '+p.nombre+'</td>'+tds+'</tr>';
-  }).join('');
-  var css='@page{size:landscape;margin:10mm}'+
-    'body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0;padding:14px}'+
-    'h1{font-size:15px;margin:0 0 2px;color:#1a4f8a}.sub{font-size:10px;color:#666;margin-bottom:12px}'+
-    'table{width:100%;border-collapse:collapse;table-layout:fixed}'+
-    'th{background:#1a4f8a;color:#fff;padding:5px 4px;text-align:left;font-size:9px;border:1px solid #15406f}'+
-    'td{padding:3px 5px;border:1px solid #d8e2ee;vertical-align:top;word-wrap:break-word}'+
-    'td.nm{font-weight:700;color:#1a4f8a;width:130px;background:#f5f8fd}'+
-    'td.aus{color:#c0392b;font-weight:700;text-align:center;background:#fff3f0}'+
-    'td.z{color:#bbb}'+
-    'tr.alt td{background:#f9fbfe}'+
-    'tr.alt td.nm{background:#eef4fb}';
-  var cuerpo='<h1>Solicitudes recibidas - '+menuMes+'</h1>'+
-    '<div class="sub">'+solMes.length+' personas - Generado: '+new Date().toLocaleString('es-CL')+' - TOOLTEK</div>'+
-    '<table><thead><tr><th style="width:130px">Nombre</th>'+ths+'</tr></thead><tbody>'+rows+'</tbody></table>';
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Solicitudes '+menuMes+'</title><style>'+css+'</style></head><body>'+cuerpo+'</body></html>';
-  var win=window.open('','_blank','width=1000,height=700');
-  win.document.write(html); win.document.close(); win.focus();
-  setTimeout(function(){win.print();},400);
+// Toggle: ampliar la tabla de solicitudes a casi todo el ancho de pantalla
+function toggleAmplio(){
+  var tw=document.getElementById('tblWrap');
+  if(!tw) return;
+  tw.classList.toggle('amplio');
+  var btn=document.getElementById('btnAmpliar');
+  if(btn) btn.textContent = tw.classList.contains('amplio') ? '⛶ Reducir' : '⛶ Ampliar';
 }
 
 // ══ INIT ══
