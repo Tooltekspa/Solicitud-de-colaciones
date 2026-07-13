@@ -285,6 +285,10 @@ footer{text-align:center;padding:22px;font-size:.7rem;color:var(--mut);border-to
 .sheet-table td.col-nombre{font-weight:700;color:var(--azul);white-space:nowrap;position:sticky;left:0;z-index:1;background:#eaf1fb}
 .sheet-table tr:nth-child(even) td.col-nombre{background:#e1ebf7}
 .sheet-table thead th:first-child{position:sticky;left:0;z-index:3}
+.sheet-table th.col-hoy{background:var(--rojo,#E52624);border-color:#c41f1d}
+.sheet-table td.col-hoy{background:#fff3ec;border-left:2px solid #E52624;border-right:2px solid #E52624}
+.sheet-table tr:nth-child(even) td.col-hoy{background:#ffe9dc}
+.sheet-table tr:hover td.col-hoy{background:#ffdccb}
 footer span{color:var(--azul3)}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);opacity:0;
   background:var(--azul);color:#fff;border-radius:9px;padding:10px 20px;font-size:.81rem;font-weight:600;
@@ -1665,10 +1669,15 @@ function renderStats(solMes) {
   document.getElementById('sAus').textContent=aus;
 }
 
+let _diaCentrado = null; // último día auto-centrado en la tabla de solicitudes
+
 function renderTable(solMes) {
   const tw=document.getElementById('tblWrap'),tb=document.getElementById('tblBody'),fr=document.getElementById('fltRow');
   if(!solMes.length){tw.style.display='none';return;}
   tw.style.display='block';
+  // Guardar posición de scroll actual (el polling re-renderiza y la perdería)
+  var _prevWrap = tb.querySelector('.sheet-tbl-wrap');
+  var _prevScroll = _prevWrap ? {left:_prevWrap.scrollLeft, top:_prevWrap.scrollTop} : null;
   fr.innerHTML='<span style="font-size:.75rem;color:var(--mut);font-weight:600">'+solMes.length+' personas · '+menuMes+'</span><span style="font-size:.72rem;color:var(--azul3);margin-left:10px">✏️ Haz clic en una celda para editar</span>';
   const diasMap={};
   solMes.forEach(function(p){(p.dias||[]).forEach(function(d){if(!diasMap[d.fecha])diasMap[d.fecha]=d.fechaLabel||d.fecha;});});
@@ -1676,6 +1685,13 @@ function renderTable(solMes) {
   const diasOrden=DATES.length
     ? DATES.filter(function(dk){return diasMap[dk]||solMes.some(function(p){return p.dias.find(function(d){return d.fecha===dk;});});})
     : Object.keys(diasMap).sort();
+  // ── Día de hoy: coincidencia exacta, o el próximo día futuro de la minuta ──
+  var _hoyN=(function(){var h=new Date();return (h.getMonth()+1)*100+h.getDate();})();
+  var dkHoy=null, dkScroll=null;
+  diasOrden.forEach(function(dk){ if(dkHoy===null && dkNum(dk)===_hoyN) dkHoy=dk; });
+  dkScroll = dkHoy;
+  if(!dkScroll) diasOrden.forEach(function(dk){ if(dkScroll===null && dkNum(dk)>_hoyN) dkScroll=dk; });
+
   const headers=['Nombre','Marca temporal'].concat(diasOrden.map(dk=>{const d=MENU[dk];return d?d.label+' '+dk:diasMap[dk]||dk;}));
   const bodyHTML=solMes.map(function(p){
     let tds='<td class="col-nombre">'+p.nombre+'</td><td class="col-ts">'+(p.fecha_reg+(p.hora?' '+p.hora:''))+'</td>';
@@ -1692,17 +1708,42 @@ function renderTable(solMes) {
           txt=partes.join(' · ')||'—';
         }
       }
+      if(dk===dkHoy) cls+=' col-hoy';
       tds+='<td class="'+cls+' celda-edit" data-id="'+p.id+'" data-fecha="'+dk+'" title="Clic para editar">'+txt+'</td>';
     });
     return '<tr>'+tds+'</tr>';
   }).join('');
   tb.innerHTML = '<div class="sheet-tbl-wrap"><table class="sheet-table">' +
-    '<thead><tr>' + headers.map((h,i) => '<th class="' + (i===0?'col-nombre':i===1?'col-ts':'col-dia') + '">' + h + '</th>').join('') + '</tr></thead>' +
+    '<thead><tr>' + headers.map(function(h,i){
+      if(i<2) return '<th class="'+(i===0?'col-nombre':'col-ts')+'">'+h+'</th>';
+      var dk=diasOrden[i-2], esHoy=(dk===dkHoy);
+      return '<th class="col-dia'+(esHoy?' col-hoy':'')+'" data-dk="'+dk+'">'+(esHoy?'📍 HOY · ':'')+h+'</th>';
+    }).join('') + '</tr></thead>' +
     '<tbody>' + bodyHTML + '</tbody>' +
     '</table></div>';
   tb.querySelectorAll('.celda-edit').forEach(function(td){
     td.addEventListener('click', function(){ editarCelda(this.getAttribute('data-id'), this.getAttribute('data-fecha')); });
   });
+
+  // ── Auto-centrar la columna del día actual (o restaurar scroll en re-renders) ──
+  var wrap = tb.querySelector('.sheet-tbl-wrap');
+  if(wrap){
+    if(dkScroll && _diaCentrado !== dkScroll){
+      // Primera vez o cambió el día → centrar la columna de hoy
+      var th = wrap.querySelector('th[data-dk="'+dkScroll+'"]');
+      if(th){
+        var thNombre = wrap.querySelector('th.col-nombre');
+        var nombreW = thNombre ? thNombre.offsetWidth : 0; // columna fija a la izquierda
+        var visible = wrap.clientWidth - nombreW;
+        wrap.scrollLeft = Math.max(0, th.offsetLeft + th.offsetWidth/2 - nombreW - visible/2);
+      }
+      _diaCentrado = dkScroll;
+    } else if(_prevScroll){
+      // Re-render del polling → mantener donde estaba el usuario
+      wrap.scrollLeft = _prevScroll.left;
+      wrap.scrollTop  = _prevScroll.top;
+    }
+  }
 }
 
 function renderResumen(solMes) {
