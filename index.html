@@ -346,6 +346,7 @@ footer span{color:var(--azul3)}
         <div class="spinner"></div>
         <span id="menuBannerTxt">Cargando menú del mes...</span>
       </div>
+      <div id="empMesSelector" style="display:none"></div>
       <div id="linkNote" style="display:none"></div>
       <div id="resumeBox" style="display:none"></div>
       <div class="card">
@@ -487,6 +488,13 @@ async function sha256Hex(txt){
 }
 let ADMIN_TOKEN = '';
 
+// ── MULTI-MENÚ ──────────────────────────────────────────
+// MENUS guarda TODOS los meses cargados: { "Julio 2026": {menu:{...}, dates:[...]}, ... }
+// MES_ACTIVO es el mes que ven los empleados por defecto al abrir la página.
+// MENU / DATES / menuMes siguen siendo "el mes en pantalla" (se copian desde MENUS),
+// así el resto del código funciona sin cambios.
+let MENUS = {};
+let MES_ACTIVO = '';
 let MENU = {};
 let DATES = [];
 let menuMes = '';
@@ -506,17 +514,30 @@ let VISIBLE_DATES = [];
 //   ?p=Nombre        → precarga el nombre
 //   ?d=15/07,16/07   → solo muestra esos días
 //   ?desde=15/07     → muestra desde ese día en adelante
+//   ?mes=Agosto 2026 → preselecciona ese mes (multi-menú)
 const LINK_PARAMS = (function(){
-  var out = { nombre:'', desde:'', dias:[] };
+  var out = { nombre:'', desde:'', dias:[], mes:'' };
   try {
     var q = new URLSearchParams(location.search);
     if (q.get('p'))   out.nombre = q.get('p').trim();
     if (q.get('nom')) out.nombre = q.get('nom').trim();
     if (q.get('desde')) out.desde = q.get('desde').trim();
     if (q.get('d'))   out.dias = q.get('d').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    if (q.get('mes')) out.mes = q.get('mes').trim();
   } catch(e){}
   return out;
 })();
+
+// "Julio 2026" → 202607, para ordenar meses cronológicamente
+function mesKeyNum(mes){
+  var s = String(mes||'').toLowerCase();
+  var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var mi = -1;
+  for (var i=0;i<12;i++){ if (s.indexOf(meses[i]) >= 0) { mi = i; break; } }
+  var ym = s.match(/\d{4}/);
+  var y = ym ? parseInt(ym[0],10) : 0;
+  return (mi < 0 && !y) ? 0 : y*100 + (mi+1);
+}
 
 // DD/MM → número comparable (MM*100+DD). Sirve para ordenar/comparar fechas.
 function dkNum(dk){
@@ -643,20 +664,64 @@ const TB = {A:'bA',B:'bB',C:'bC',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 // ══════════════════════════════════════════════════════
 function loadStor() {
   try { const s = localStorage.getItem('tt_sol'); if(s) solicitudes = JSON.parse(s); } catch(e){}
+  // Formato nuevo: tt_menus = {menus:{mes:{menu,dates}}, activo}
+  try {
+    const mm = localStorage.getItem('tt_menus');
+    if (mm) {
+      const md = JSON.parse(mm);
+      if (md.menus && Object.keys(md.menus).length) {
+        MENUS = md.menus;
+        MES_ACTIVO = md.activo || '';
+        activarMesLocal(elegirMesInicial());
+        return;
+      }
+    }
+  } catch(e){}
+  // Compatibilidad: migrar el formato antiguo tt_menu (un solo mes)
   try {
     const m = localStorage.getItem('tt_menu');
     if(m) {
       const md = JSON.parse(m);
       if(md.menu && md.dates && md.mes) {
-        MENU=md.menu; DATES=md.dates; menuMes=md.mes;
-        setLabel(menuMes);
-        computeVisibleDates();
+        MENUS[md.mes] = {menu: md.menu, dates: md.dates};
+        MES_ACTIVO = md.mes;
+        activarMesLocal(md.mes);
+        saveMenu(); // guardar ya en formato nuevo
       }
     }
   } catch(e){}
 }
 function saveSol() { localStorage.setItem('tt_sol', JSON.stringify(solicitudes)); }
-function saveMenu() { localStorage.setItem('tt_menu', JSON.stringify({menu:MENU,dates:DATES,mes:menuMes})); }
+function saveMenu() { localStorage.setItem('tt_menus', JSON.stringify({menus:MENUS, activo:MES_ACTIVO})); }
+
+// Copia un mes desde MENUS a las variables "activas" (MENU/DATES/menuMes)
+function activarMesLocal(mes) {
+  if (!mes || !MENUS[mes]) return false;
+  menuMes = mes;
+  MENU  = MENUS[mes].menu;
+  DATES = MENUS[mes].dates.slice();
+  setLabel(menuMes);
+  computeVisibleDates();
+  return true;
+}
+
+// Qué mes mostrar al abrir: 1) ?mes= del enlace, 2) el mes calendario actual
+// si está cargado, 3) el mes marcado como activo, 4) el más reciente.
+function elegirMesInicial() {
+  var keys = Object.keys(MENUS);
+  if (!keys.length) return '';
+  if (LINK_PARAMS.mes) {
+    var hit = keys.find(function(k){ return k.toLowerCase() === LINK_PARAMS.mes.toLowerCase(); });
+    if (hit) return hit;
+  }
+  var hoy = new Date();
+  var hoyKey = hoy.getFullYear()*100 + (hoy.getMonth()+1);
+  var actual = keys.find(function(k){ return mesKeyNum(k) === hoyKey; });
+  if (actual) return actual;
+  if (MES_ACTIVO && MENUS[MES_ACTIVO]) return MES_ACTIVO;
+  keys.sort(function(a,b){ return mesKeyNum(a) - mesKeyNum(b); });
+  return keys[keys.length-1];
+}
 function setLabel(label) {
   document.getElementById('datePill').textContent = 'Colaciones ' + label;
   document.getElementById('resumenPill').textContent = 'Resumen · ' + label;
@@ -675,29 +740,88 @@ async function cargarMenuRemoto() {
         saveMenu();
         const upd = data.updated ? ' · ' + new Date(data.updated).toLocaleDateString('es-CL') : '';
         setBanner('ok', '✅ Menú ' + menuMes + ' cargado' + upd);
-        menuLoaded = true; checkStart(); maybeShowResume(); return;
+        menuLoaded = true; renderEmpMesSelector(); checkStart(); maybeShowResume(); return;
       }
     }
   } catch(e) { console.warn('menu.json:', e.message); }
   if (DATES.length > 0) {
     computeVisibleDates();
     setBanner('ok', '📋 Menú ' + menuMes + ' (local)');
-    menuLoaded = true; checkStart(); maybeShowResume(); return;
+    menuLoaded = true; renderEmpMesSelector(); checkStart(); maybeShowResume(); return;
   }
   setBanner('err', '⚠️ Sin menú — el admin debe cargar el Excel.');
   menuLoaded = true; checkStart();
 }
 
-function aplicarMenu(data) {
-  if (!data || !data.menu) return false;
-  const valid = Object.keys(data.menu).filter(dk => {
-    const d = data.menu[dk]; return !d.feriado && d.A && d.B;
+function validarDias(menuObj) {
+  return Object.keys(menuObj || {}).filter(dk => {
+    const d = menuObj[dk]; return !d.feriado && d.A && d.B;
   }).sort();
-  if (!valid.length) return false;
-  MENU = data.menu; DATES = valid; menuMes = data.mes || menuMes;
-  setLabel(menuMes);
-  computeVisibleDates();
-  return true;
+}
+
+function aplicarMenu(data) {
+  if (!data) return false;
+  // Formato v2: {menus:{mes:{menu,dates}}, activo}
+  if (data.menus && typeof data.menus === 'object') {
+    const nuevos = {};
+    Object.keys(data.menus).forEach(function(mes){
+      const entry = data.menus[mes];
+      if (!entry || !entry.menu) return;
+      const valid = entry.dates && entry.dates.length ? entry.dates : validarDias(entry.menu);
+      if (valid.length) nuevos[mes] = {menu: entry.menu, dates: valid};
+    });
+    if (!Object.keys(nuevos).length) return false;
+    // MERGE: el remoto manda mes a mes, pero se conservan meses locales que aún
+    // no están en el menu.json remoto (ej: agosto cargado pero no subido todavía).
+    // Para eliminar un mes de verdad, usar el botón "Quitar menú" del admin.
+    MENUS = Object.assign({}, MENUS, nuevos);
+    MES_ACTIVO = (data.activo && MENUS[data.activo]) ? data.activo : (MES_ACTIVO && MENUS[MES_ACTIVO] ? MES_ACTIVO : Object.keys(MENUS).sort(function(a,b){return mesKeyNum(a)-mesKeyNum(b);})[0]);
+    return activarMesLocal(elegirMesInicial());
+  }
+  // Formato v1 (un solo mes): {menu, dates, mes}
+  if (data.menu) {
+    const valid = validarDias(data.menu);
+    if (!valid.length) return false;
+    const mes = data.mes || menuMes || 'Menú';
+    MENUS[mes] = {menu: data.menu, dates: valid};
+    if (!MES_ACTIVO) MES_ACTIVO = mes;
+    return activarMesLocal(elegirMesInicial());
+  }
+  return false;
+}
+
+// ── SELECTOR DE MES (empleado) ─────────────────────────
+// Si hay más de un mes cargado, el empleado puede elegir para cuál solicitar
+// (por ejemplo, pedir el mes siguiente de forma anticipada).
+function renderEmpMesSelector() {
+  var el = document.getElementById('empMesSelector');
+  if (!el) return;
+  var keys = Object.keys(MENUS).sort(function(a,b){ return mesKeyNum(a)-mesKeyNum(b); });
+  if (keys.length < 2) { el.style.display = 'none'; return; }
+  var hoy = new Date();
+  var hoyKey = hoy.getFullYear()*100 + (hoy.getMonth()+1);
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div style="font-size:.63rem;font-weight:700;color:var(--azul);letter-spacing:.7px;text-transform:uppercase;opacity:.6;margin:14px 0 6px;text-align:left">Mes de la solicitud</div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+    keys.map(function(m){
+      var on = m === menuMes;
+      var k = mesKeyNum(m);
+      var tag = k === hoyKey ? ' · mes actual' : (k > hoyKey ? ' · próximo' : '');
+      return '<button class="flt'+(on?' on':'')+'" style="border-radius:8px" onclick="cambiarMesEmpleado(\''+m.replace(/'/g,"\\'")+'\')">'+m+tag+'</button>';
+    }).join('') + '</div>';
+}
+
+function cambiarMesEmpleado(mes) {
+  if (mes === menuMes || !MENUS[mes]) return;
+  if (Object.keys(choices).length &&
+      !confirm('Tienes días elegidos para ' + menuMes + '. Al cambiar de mes se descartará esa selección. ¿Continuar?')) return;
+  choices = {}; curIdx = 0; _tmp = {tipo:null,ens:null,pos:null};
+  activarMesLocal(mes);
+  setBanner('ok', '📋 Menú ' + menuMes);
+  renderEmpMesSelector();
+  checkStart();
+  maybeShowResume();
 }
 
 function setBanner(type, msg) {
@@ -813,17 +937,20 @@ function parseCSVLine(line) {
 //  GUARDAR MENÚ REMOTO
 // ══════════════════════════════════════════════════════
 function guardarMenuRemoto() {
-  const json = JSON.stringify({menu:MENU,dates:DATES,mes:menuMes,updated:new Date().toISOString()}, null, 2);
+  // Formato v2: incluye TODOS los meses cargados y cuál está activo.
+  // El frontend sigue leyendo también el formato v1 antiguo por compatibilidad.
+  const payload = {version:2, activo:MES_ACTIVO, menus:MENUS, updated:new Date().toISOString()};
+  const json = JSON.stringify(payload, null, 2);
   const blob = new Blob([json], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'menu.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  setSyncStatus('ok', '✅ menu.json descargado');
+  setSyncStatus('ok', '✅ menu.json descargado ('+Object.keys(MENUS).length+' mes'+(Object.keys(MENUS).length!==1?'es':'')+')');
   showToast('📥 Sube el menu.json a GitHub → repositorio → Add file → Upload', 7000);
   fetch(WEBHOOK_URL, {method:'POST',mode:'no-cors',
-    body:JSON.stringify({action:'guardar_menu',menu:MENU,dates:DATES,mes:menuMes,updatedBy:'Admin'})
+    body:JSON.stringify({action:'guardar_menus',menus:MENUS,activo:MES_ACTIVO,updatedBy:'Admin'})
   }).catch(()=>{});
 }
 
@@ -1415,14 +1542,21 @@ function loadExcel(e) {
       const parsed=parseMenuExcel(wb);
       const valid=Object.keys(parsed.menu).filter(dk=>{const d=parsed.menu[dk];return !d.feriado&&d.A&&d.B;}).sort();
       if(!valid.length){showToast('⚠️ No se encontraron días hábiles');return;}
-      MENU=parsed.menu; DATES=valid; menuMes=parsed.mes||f.name.replace(/\.xlsx?/i,'');
-      setLabel(menuMes); saveMenu(); computeVisibleDates();
+      const mesNuevo = parsed.mes||f.name.replace(/\.xlsx?/i,'');
+      // Multi-menú: solo se reemplaza ESE mes; los demás meses cargados se conservan
+      if (MENUS[mesNuevo] && !confirm('Ya existe un menú para '+mesNuevo+'. ¿Reemplazarlo? (Los otros meses no se tocan)')) return;
+      MENUS[mesNuevo] = {menu: parsed.menu, dates: valid};
+      if (!MES_ACTIVO || !MENUS[MES_ACTIVO]) MES_ACTIVO = mesNuevo;
+      activarMesLocal(mesNuevo);
+      saveMenu();
       const zone=document.getElementById('upZone');
-      zone.classList.add('loaded'); zone.onclick=null;
+      zone.classList.add('loaded');   // se mantiene clickeable para cargar otro mes
       document.getElementById('upIcon').textContent='✅';
-      document.getElementById('upTitle').textContent='Minuta cargada: '+menuMes;
-      document.getElementById('upDesc').textContent=valid.length+' días hábiles · '+f.name;
+      document.getElementById('upTitle').textContent='Minuta cargada: '+menuMes+' ('+valid.length+' días)';
+      document.getElementById('upDesc').textContent='Meses en el sistema: '+Object.keys(MENUS).sort(function(a,b){return mesKeyNum(a)-mesKeyNum(b);}).join(' · ')+' — haz clic para cargar otro mes';
       renderMenuPreview();
+      renderEmpMesSelector();
+      renderAdmin();
       guardarMenuRemoto();
     } catch(err){ showToast('❌ Error: '+err.message); console.error(err); }
   };
@@ -1459,13 +1593,14 @@ function renderAdmin() {
   // Normalizar mes en todas las solicitudes (puede llegar como ISO date desde Sheets)
   solicitudes.forEach(function(s){ s.mes = normalizarMes(s.mes); });
 
-  var mesesDisp = [];
+  // Unión de meses: los que tienen menú cargado + los que tienen solicitudes
+  var mesesDisp = Object.keys(MENUS);
   solicitudes.forEach(function(s){ if(s.mes && mesesDisp.indexOf(s.mes)<0) mesesDisp.push(s.mes); });
-  mesesDisp.sort();
+  mesesDisp.sort(function(a,b){ return mesKeyNum(a) - mesKeyNum(b); });
 
   if (!menuMes && mesesDisp.length) {
     menuMes = mesesDisp[mesesDisp.length - 1];
-    setLabel(menuMes);
+    if (MENUS[menuMes]) activarMesLocal(menuMes); else setLabel(menuMes);
   }
 
   var mesLower = menuMes.toLowerCase();
@@ -1480,12 +1615,27 @@ function renderAdmin() {
       var btns = '<span style="font-size:.75rem;color:var(--mut);font-weight:600;margin-right:6px">Mes:</span>';
       mesesDisp.forEach(function(m) {
         var active = m.toLowerCase() === mesLower ? ' on' : '';
-        btns += '<button class="flt' + active + '" style="border-radius:6px" data-mes="' + m + '">' + m + '</button>';
+        var star = (m === MES_ACTIVO) ? ' ★' : '';
+        var sinMenu = MENUS[m] ? '' : ' title="Sin menú cargado (solo solicitudes)"';
+        btns += '<button class="flt' + active + '" style="border-radius:6px"' + sinMenu + ' data-mes="' + m + '">' + m + star + '</button>';
       });
+      // Botón para marcar el mes en pantalla como el activo (el que ven los empleados por defecto)
+      if (MENUS[menuMes] && menuMes !== MES_ACTIVO) {
+        btns += '<button class="abtn ao" style="font-size:.7rem;padding:5px 10px" data-activar="1">★ Hacer activo</button>';
+      } else if (menuMes === MES_ACTIVO) {
+        btns += '<span style="font-size:.72rem;color:var(--grn);font-weight:700;align-self:center">★ Mes activo para empleados</span>';
+      }
+      if (MENUS[menuMes] && Object.keys(MENUS).length > 1) {
+        btns += '<button class="abtn ad" style="font-size:.7rem;padding:5px 10px" data-borrar="1">🗑 Quitar menú</button>';
+      }
       selWrap.innerHTML = btns;
-      selWrap.querySelectorAll('button').forEach(function(btn) {
+      selWrap.querySelectorAll('button[data-mes]').forEach(function(btn) {
         btn.addEventListener('click', function() { cambiarMes(this.getAttribute('data-mes')); });
       });
+      var bAct = selWrap.querySelector('button[data-activar]');
+      if (bAct) bAct.addEventListener('click', function(){ marcarActivo(menuMes); });
+      var bDel = selWrap.querySelector('button[data-borrar]');
+      if (bDel) bDel.addEventListener('click', function(){ borrarMes(menuMes); });
     } else {
       selWrap.style.display = 'none';
     }
@@ -1519,9 +1669,50 @@ function adminTab(w){
 }
 
 function cambiarMes(mes) {
-  menuMes = mes;
-  setLabel(mes);
+  if (MENUS[mes]) {
+    activarMesLocal(mes);            // carga MENU/DATES de ese mes
+    renderMenuPreview();
+  } else {
+    // Mes solo con solicitudes históricas (sin menú cargado)
+    menuMes = mes;
+    MENU = {}; DATES = [];
+    setLabel(mes);
+    var mp = document.getElementById('menuPreview'); if (mp) mp.style.display='none';
+  }
+  renderEmpMesSelector();
   renderAdmin();
+}
+
+// Quita el MENÚ de un mes del sistema (las solicitudes de ese mes NO se tocan).
+function borrarMes(mes) {
+  if (!MENUS[mes]) return;
+  if (!confirm('¿Quitar el menú de ' + mes + ' del sistema?\n\nLas solicitudes ya registradas de ese mes NO se eliminan; solo el menú.\nSe descargará un nuevo menu.json que debes subir a GitHub.')) return;
+  delete MENUS[mes];
+  if (MES_ACTIVO === mes) {
+    var restantes = Object.keys(MENUS).sort(function(a,b){ return mesKeyNum(a)-mesKeyNum(b); });
+    MES_ACTIVO = restantes.length ? restantes[restantes.length-1] : '';
+  }
+  if (menuMes === mes) {
+    if (MES_ACTIVO) activarMesLocal(MES_ACTIVO);
+    else { MENU={}; DATES=[]; menuMes=''; computeVisibleDates(); }
+  }
+  saveMenu();
+  renderEmpMesSelector();
+  renderMenuPreview();
+  renderAdmin();
+  guardarMenuRemoto();
+  showToast('🗑 Menú de ' + mes + ' eliminado');
+}
+
+// Marca un mes como el "activo": el que verán los empleados por defecto.
+function marcarActivo(mes) {
+  if (!MENUS[mes]) { showToast('Ese mes no tiene menú cargado'); return; }
+  if (!confirm('¿Marcar ' + mes + ' como el mes activo que verán los empleados al abrir la página?\n\nSe descargará un nuevo menu.json que debes subir a GitHub.')) return;
+  MES_ACTIVO = mes;
+  saveMenu();
+  renderAdmin();
+  guardarMenuRemoto();
+  showToast('★ ' + mes + ' es ahora el mes activo');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1983,6 +2174,9 @@ function generarEnlacePersona(){
     var nombre = inner.querySelector('#lnkNombre').value.trim();
     var qs = [];
     if(nombre) qs.push('p='+encodeURIComponent(nombre));
+    // Si hay varios meses en el sistema, fijamos el mes en el enlace para que
+    // la persona llegue directo al mes correcto (ej: pedir agosto anticipado)
+    if(Object.keys(MENUS).length > 1) qs.push('mes='+encodeURIComponent(menuMes));
     // Solo agregamos d= si es un subconjunto; si son todos, el link muestra el mes completo
     if(dias.length && dias.length < DATES.length) qs.push('d='+encodeURIComponent(dias.join(',')));
     inner.querySelector('#lnkOut').value = base + (qs.length ? ('?'+qs.join('&')) : '');
@@ -2212,6 +2406,7 @@ if (LINK_PARAMS.nombre) {
   if (_n && !_n.value) _n.value = LINK_PARAMS.nombre;
 }
 if(VISIBLE_DATES.length>0){menuLoaded=true;setBanner('ok','\ud83d\udccb Men\u00fa '+menuMes+' \u00b7 actualizando...');}
+renderEmpMesSelector();
 maybeShowResume();
 checkStart();
 cargarMenuRemoto();
