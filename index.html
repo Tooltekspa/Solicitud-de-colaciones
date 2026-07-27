@@ -447,9 +447,9 @@ footer span{color:var(--azul3)}
       <div class="sc"><div class="sc-l">Total días</div><div class="sc-v" id="sTot">0</div></div>
       <div class="sc"><div class="sc-l">Plato A</div><div class="sc-v" id="sA">0</div></div>
       <div class="sc"><div class="sc-l">Plato B</div><div class="sc-v" id="sB">0</div></div>
-      <div class="sc"><div class="sc-l">Plato C</div><div class="sc-v" style="color:var(--cian)" id="sC">0</div></div>
+      <div class="sc"><div class="sc-l" id="scLC">Plato C</div><div class="sc-v" style="color:var(--cian)" id="sC">0</div></div>
       <div class="sc"><div class="sc-l">Hipocalórico</div><div class="sc-v" style="color:var(--grn)" id="sH">0</div></div>
-      <div class="sc"><div class="sc-l">Alt. adicional</div><div class="sc-v" id="sV">0</div></div>
+      <div class="sc"><div class="sc-l" id="scLV">Alt. adicional</div><div class="sc-v" id="sV">0</div></div>
       <div class="sc"><div class="sc-l">Liviano</div><div class="sc-v" id="sL">0</div></div>
       <div class="sc"><div class="sc-l">Ausencias</div><div class="sc-v" id="sAus">0</div></div>
     </div>
@@ -678,6 +678,18 @@ function fmtFechaDMY(v){
 function areaKey(p){ return (String(p.area||'').trim()) || '\uffff'; }
 
 const TL = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Alt. adicional',L:'Liviano',AUS:'Ausencia'};
+// ── Etiquetas según el mes ──────────────────────────────
+// Julio 2026 y meses anteriores conservan el formato antiguo (V = "Vegetariano",
+// sin nota en Plato C). Desde Agosto 2026 rige el nuevo (V = "Alt. adicional",
+// Plato C = Alt.3 "sin insumo animal").
+const FORMATO_NUEVO_DESDE = 202608; // Agosto 2026
+function esFormatoNuevo(mes){ return mesKeyNum(mes) >= FORMATO_NUEVO_DESDE; }
+const TL_OLD = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia'};
+function tlMes(tipo, mes){ return esFormatoNuevo(mes) ? (TL[tipo]||tipo) : (TL_OLD[tipo]||TL[tipo]||tipo); }
+function notaSinInsumo(tipo, mes){
+  return (tipo==='C' && esFormatoNuevo(mes))
+    ? ' <span style="font-weight:600;font-size:.6rem;color:var(--grn)">🌱 sin insumo animal</span>' : '';
+}
 
 // Normaliza el campo mes: convierte "2026-06-01T04:00:00.000Z" → "Junio 2026"
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1197,13 +1209,16 @@ function renderSlide(dir='fwd') {
   const tiposDisp = [['A',d.A],['B',d.B],['C',d.C],['H',d.H],['V',d.V]].filter(([,n])=>n);
   if(d.L) tiposDisp.push(['L',d.L]);
   // El hipocalórico también elige ensalada, igual que el resto de los fondos
-  const ensSection = `<div class="chips" id="ensGrid">${(d.ens||[]).map(e=>`<div class="chip${selE===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div>`;
+  const hipoSinEns = (selT==='H' && !esFormatoNuevo(menuMes)); // Julio-: el hipocalórico ya incluye ensalada
+  const ensSection = hipoSinEns
+    ? `<div class="hipo-note show">🥗 El plato hipocalórico ya incluye ensalada.</div>`
+    : `<div class="chips" id="ensGrid">${(d.ens||[]).map(e=>`<div class="chip${selE===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div>`;
   document.getElementById('slideContent').innerHTML = `
     <div class="scard ${dir==='back'?'back':''}">
       <div class="shead"><div class="sdate">${d.full}</div><div class="sweek">${d.semana}</div></div>
       <div class="sbody">
         <div class="ssec"><div class="ssec-title">Plato de fondo <span class="sbadge">Elige 1</span></div>
-          <div class="pgrid">${tiposDisp.map(([t,n])=>`<div class="pc${selT===t?' sel':''}" style="--cc:${TC[t]}" onclick="selTipo('${t}',this)"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>${TL[t]}${t==='C'?' <span style="font-weight:600;font-size:.6rem;color:var(--grn)">🌱 sin insumo animal</span>':''}</div><div class="pc-name">${n}</div></div>`).join('')}</div>
+          <div class="pgrid">${tiposDisp.map(([t,n])=>`<div class="pc${selT===t?' sel':''}" style="--cc:${TC[t]}" onclick="selTipo('${t}',this)"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>${tlMes(t,menuMes)}${notaSinInsumo(t,menuMes)}</div><div class="pc-name">${n}</div></div>`).join('')}</div>
         </div>
         <div class="ssec" id="ensSec"><div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div>${ensSection}<div class="req-msg" id="ensReq">⚠ Selecciona una ensalada</div></div>
         <div class="ssec"><div class="ssec-title">Postre <span class="sbadge">Elige 1</span></div>
@@ -1223,8 +1238,13 @@ function selTipo(t, el) {
   el.classList.add('sel');
   const d = MENU[VISIBLE_DATES[curIdx]];
   const sec = document.getElementById('ensSec');
-  const ce = _tmp.ens||'';
-  sec.innerHTML = `<div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div><div class="chips" id="ensGrid">${(d.ens||[]).map(e=>`<div class="chip${ce===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div><div class="req-msg" id="ensReq">⚠ Selecciona una ensalada</div>`;
+  if (t === 'H' && !esFormatoNuevo(menuMes)) {
+    _tmp.ens = null;
+    sec.innerHTML = `<div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div><div class="hipo-note show">🥗 El plato hipocalórico ya incluye ensalada.</div>`;
+  } else {
+    const ce = _tmp.ens||'';
+    sec.innerHTML = `<div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div><div class="chips" id="ensGrid">${(d.ens||[]).map(e=>`<div class="chip${ce===e?' sel':''}" onclick="selEns(this,'${esc(e)}')">${e}</div>`).join('')}</div><div class="req-msg" id="ensReq">⚠ Selecciona una ensalada</div>`;
+  }
   updateNextBtn();
 }
 
@@ -1234,7 +1254,7 @@ function selPos(el, v) { _tmp.pos=v; document.querySelectorAll('#posGrid .chip')
 function updateNextBtn() {
   const t = _tmp.tipo;
   const dNB = MENU[VISIBLE_DATES[curIdx]] || {};
-  const needEns = t && (dNB.ens||[]).length > 0;
+  const needEns = t && (dNB.ens||[]).length > 0 && !(t==='H' && !esFormatoNuevo(menuMes));
   const ok = t && (!needEns || _tmp.ens) && _tmp.pos;
   document.getElementById('btnNext').disabled = !ok;
   const er = document.getElementById('ensReq'); if(er) er.style.display = (needEns && !_tmp.ens && t) ? 'block':'none';
@@ -1243,7 +1263,8 @@ function updateNextBtn() {
 
 function saveSlide() {
   if (!_tmp.tipo) return false;
-  choices[VISIBLE_DATES[curIdx]] = {tipo:_tmp.tipo, ens:_tmp.ens||'', pos:_tmp.pos||''};
+  var _ensSave = (_tmp.tipo==='H' && !esFormatoNuevo(menuMes)) ? '' : (_tmp.ens||'');
+  choices[VISIBLE_DATES[curIdx]] = {tipo:_tmp.tipo, ens:_ensSave, pos:_tmp.pos||''};
   _tmp = {tipo:null,ens:null,pos:null};
   guardarProgreso();
   return true;
@@ -1284,7 +1305,7 @@ function buildResumen() {
     } else if (c.ausente) {
       div.innerHTML=`<div class="rday-head"><div class="rdc">${d.label}</div><div class="rdd"><span class="badge bAus">Ausencia</span><button class="btn-edit" onclick="editDay(${i})">editar</button></div></div>`;
     } else {
-      div.innerHTML=`<div class="rday-head"><div class="rdc">${d.label} <span style="font-weight:400;font-size:.73rem;color:var(--mut)">${d.full}</span></div><div class="rdd"><span class="badge ${TB[c.tipo]}">${TL[c.tipo]}</span><button class="btn-edit" onclick="editDay(${i})">editar</button></div></div><div class="rday-body"><strong>${fm[c.tipo]||''}</strong>${c.ens?'<br>🥗 '+c.ens:''}${c.pos?'<br>🍮 '+c.pos:''}</div>`;
+      div.innerHTML=`<div class="rday-head"><div class="rdc">${d.label} <span style="font-weight:400;font-size:.73rem;color:var(--mut)">${d.full}</span></div><div class="rdd"><span class="badge ${TB[c.tipo]}">${tlMes(c.tipo,menuMes)}</span><button class="btn-edit" onclick="editDay(${i})">editar</button></div></div><div class="rday-body"><strong>${fm[c.tipo]||''}</strong>${c.ens?'<br>🥗 '+c.ens:''}${c.pos?'<br>🍮 '+c.pos:''}</div>`;
     }
     el.appendChild(div);
   });
@@ -1319,7 +1340,7 @@ async function submitFinal() {
   solicitudes.push(pedido); saveSol();
   borrarProgreso();
   document.getElementById('sucMsg').textContent = `${nombre} — ${selDias} día${selDias!==1?'s':''} de colación${ausDias?' · '+ausDias+' ausencia'+(ausDias!==1?'s':''):''}`;
-  const lines = dias.filter(d=>!d.ausente).map(d=>`<strong>${d.fechaLabel}:</strong> ${TL[d.tipo]} — ${d.fondo}${d.ens&&d.ens!=='(incluida)'?' · 🥗 '+d.ens:''}${d.pos?' · 🍮 '+d.pos:''}`).join('<br>');
+  const lines = dias.filter(d=>!d.ausente).map(d=>`<strong>${d.fechaLabel}:</strong> ${tlMes(d.tipo,menuMes)} — ${d.fondo}${d.ens&&d.ens!=='(incluida)'?' · 🥗 '+d.ens:''}${d.pos?' · 🍮 '+d.pos:''}`).join('<br>');
   document.getElementById('exitoDetail').innerHTML = lines;
   showStep('step-exito');
   sendEmail(pedido, selDias);
@@ -1940,7 +1961,7 @@ function editarCelda(id, fecha){
   if(!p){ showToast('No se encontró la solicitud'); return; }
   const cur = (p.dias||[]).find(function(d){return d.fecha===fecha;});
   _edit = {
-    id:id, fecha:fecha, p:p, opc:opcionesDia(fecha),
+    id:id, fecha:fecha, p:p, mes:(p.mes||menuMes), opc:opcionesDia(fecha),
     tipo: (cur&&!cur.ausente) ? cur.tipo : null,
     ens:  (cur&&!cur.ausente) ? (cur.ens==='(incluida)'?'':(cur.ens||'')) : '',
     pos:  (cur&&!cur.ausente) ? (cur.pos||'') : ''
@@ -1965,14 +1986,17 @@ function renderEditModal(){
   const e=_edit, opc=e.opc;
   const platosHTML=opc.platos.map(function(x){
     const t=x[0], n=x[1];
-    var notaC = (t==='C') ? ' <span style="font-weight:600;font-size:.6rem;color:var(--grn)">🌱 sin insumo animal</span>' : '';
-    return '<div class="pc'+(e.tipo===t?' sel':'')+'" style="--cc:'+TC[t]+'" onclick="editSetTipo(\''+t+'\')"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>'+TL[t]+notaC+'</div><div class="pc-name">'+n+'</div></div>';
+    var notaC = notaSinInsumo(t, e.mes);
+    return '<div class="pc'+(e.tipo===t?' sel':'')+'" style="--cc:'+TC[t]+'" onclick="editSetTipo(\''+t+'\')"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>'+tlMes(t,e.mes)+notaC+'</div><div class="pc-name">'+n+'</div></div>';
   }).join('');
-  const ensHTML=(opc.ens.length ? '<div class="chips">'+opc.ens.map(function(en){return '<div class="chip'+(e.ens===en?' sel':'')+'" onclick="editSetEns(\''+esc(en)+'\')">'+en+'</div>';}).join('')+'</div>' : '<div style="font-size:.78rem;color:var(--mut)">Sin ensaladas registradas para este día.</div>');
+  const hipoSinEnsE = (e.tipo==='H' && !esFormatoNuevo(e.mes)); // Julio-: sin selección de ensalada
+  const ensHTML = hipoSinEnsE
+    ? '<div class="hipo-note show">🥗 El hipocalórico ya incluye ensalada.</div>'
+    : (opc.ens.length ? '<div class="chips">'+opc.ens.map(function(en){return '<div class="chip'+(e.ens===en?' sel':'')+'" onclick="editSetEns(\''+esc(en)+'\')">'+en+'</div>';}).join('')+'</div>' : '<div style="font-size:.78rem;color:var(--mut)">Sin ensaladas registradas para este día.</div>');
   const posHTML=opc.pos.length
     ? '<div class="chips">'+opc.pos.map(function(po){return '<div class="chip pos'+(e.pos===po?' sel':'')+'" onclick="editSetPos(\''+esc(po)+'\')">'+po+'</div>';}).join('')+'</div>'
     : '<div style="font-size:.78rem;color:var(--mut)">Sin postres registrados para este día.</div>';
-  const puedeGuardar = e.tipo && (e.ens || !opc.ens.length) && e.pos;
+  const puedeGuardar = e.tipo && (hipoSinEnsE || e.ens || !opc.ens.length) && e.pos;
   const guardarBtn = puedeGuardar
     ? '<button onclick="guardarEdicionColacion(\'guardar\')" class="abtn ap" style="flex:1;justify-content:center">💾 Guardar</button>'
     : '<button disabled class="abtn ap" style="flex:1;justify-content:center;opacity:.45;cursor:not-allowed">💾 Guardar</button>';
@@ -2003,8 +2027,9 @@ async function guardarEdicionColacion(modo){
     dia={fecha:e.fecha, fechaLabel:opc.label, fechaFull:opc.full, tipo:'AUS', ausente:true, ens:'', pos:'', fondo:'Ausencia'};
   } else {
     const fondo=(opc.platos.find(function(x){return x[0]===e.tipo;})||[])[1]||'';
+    var _ensEd = (e.tipo==='H' && !esFormatoNuevo(e.mes)) ? '' : (e.ens||'');
     dia={fecha:e.fecha, fechaLabel:opc.label, fechaFull:opc.full, tipo:e.tipo, ausente:false,
-         ens: e.ens||'', pos:e.pos||'', fondo:fondo};
+         ens: _ensEd, pos:e.pos||'', fondo:fondo};
   }
   showToast('Guardando...', 8000);
   try{
@@ -2046,6 +2071,8 @@ function renderStats(solMes) {
   document.getElementById('sC').textContent=c;
   document.getElementById('sH').textContent=h;
   document.getElementById('sV').textContent=v;
+  var _lblV=document.getElementById('scLV'); if(_lblV) _lblV.textContent = esFormatoNuevo(menuMes)?'Alt. adicional':'Vegetariano';
+  var _lblC=document.getElementById('scLC'); if(_lblC) _lblC.textContent = 'Plato C';
   document.getElementById('sL').textContent=l;
   document.getElementById('sAus').textContent=aus;
 }
@@ -2744,7 +2771,9 @@ function _diaDatos(dk, solMes){
 // Página de CONTEO de un día (cantidades para cocina)
 function _diaConteoPagina(dk, solMes){
   var X=_diaDatos(dk, solMes), dUse=X.dUse, cnt=X.cnt, ensCount=X.ensCount, posCount=X.posCount;
-  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'};
+  var TL_l = esFormatoNuevo(menuMes)
+    ? {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'}
+    : {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
   var totAlm=cnt.A+cnt.B+cnt.C+cnt.H+cnt.V+cnt.L;
   if(!totAlm && !cnt.AUS) return '';
   var totEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
@@ -2780,7 +2809,9 @@ function _diaConteoPagina(dk, solMes){
 function _diaDetallePagina(dk, solMes){
   var X=_diaDatos(dk, solMes), dUse=X.dUse, personasDia=X.personasDia, ausentes=X.ausentes;
   if(!personasDia.length && !ausentes.length) return '';
-  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'};
+  var TL_l = esFormatoNuevo(menuMes)
+    ? {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'}
+    : {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
   var rows='';
   personasDia.forEach(function(p,i){
     rows+='<tr'+(i%2===1?' style="background:#f5f8fd"':'')+'>'
