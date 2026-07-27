@@ -360,6 +360,8 @@ footer span{color:var(--azul3)}
             <option>Administración y Finanzas</option>
             <option>Operaciones</option>
             <option>Comercial</option>
+            <option>SERCA</option>
+            <option>Invitado</option>
           </select>
         </div>
       </div>
@@ -654,6 +656,26 @@ function sesionValida() {
 function borrarSesion() {
   sessionStorage.removeItem(SESSION_KEY);
 }
+
+// Formatea cualquier marca temporal a DD/MM/AAAA (acepta es-CL "27-07-2026",
+// dd/mm/aaaa, ISO aaaa-mm-dd, serial Excel o Date).
+function fmtFechaDMY(v){
+  if(v===null||v===undefined||v==='') return '';
+  if(typeof v==='number' && v>20000 && v<80000){
+    var ds=new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000);
+    return String(ds.getUTCDate()).padStart(2,'0')+'/'+String(ds.getUTCMonth()+1).padStart(2,'0')+'/'+ds.getUTCFullYear();
+  }
+  var s=String(v).trim();
+  var m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/); // dd-mm-aaaa / dd/mm/aaaa
+  if(m){ var a=m[3].length===2?'20'+m[3]:m[3]; return m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0')+'/'+a; }
+  var iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/); // ISO aaaa-mm-dd
+  if(iso) return iso[3]+'/'+iso[2]+'/'+iso[1];
+  var d=new Date(s);
+  if(!isNaN(d.getTime())) return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+  return s;
+}
+// Clave de ordenamiento por área (los sin área quedan al final)
+function areaKey(p){ return (String(p.area||'').trim()) || '\uffff'; }
 
 const TL = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Alt. adicional',L:'Liviano',AUS:'Ausencia'};
 
@@ -2034,6 +2056,11 @@ function renderTable(solMes) {
   const tw=document.getElementById('tblWrap'),tb=document.getElementById('tblBody'),fr=document.getElementById('fltRow');
   if(!solMes.length){tw.style.display='none';return;}
   tw.style.display='block';
+  // Ordenar por área y, dentro de cada área, por nombre
+  solMes = solMes.slice().sort(function(a,b){
+    var ak=areaKey(a).localeCompare(areaKey(b),'es');
+    return ak!==0 ? ak : String(a.nombre||'').localeCompare(String(b.nombre||''),'es');
+  });
   // Guardar posición de scroll actual (el polling re-renderiza y la perdería)
   var _prevWrap = tb.querySelector('.sheet-tbl-wrap');
   var _prevScroll = _prevWrap ? {left:_prevWrap.scrollLeft, top:_prevWrap.scrollTop} : null;
@@ -2053,7 +2080,7 @@ function renderTable(solMes) {
 
   const headers=['Nombre','Marca temporal'].concat(diasOrden.map(dk=>{const d=MENU[dk];return d?d.label+' '+dk:diasMap[dk]||dk;}));
   const bodyHTML=solMes.map(function(p){
-    let tds='<td class="col-nombre">'+p.nombre+'</td><td class="col-ts">'+(p.fecha_reg+(p.hora?' '+p.hora:''))+'</td>';
+    let tds='<td class="col-nombre">'+p.nombre+'</td><td class="col-ts">'+(fmtFechaDMY(p.fecha_reg)+(p.hora?' '+p.hora:''))+'</td>';
     diasOrden.forEach(function(dk){
       const dia=(p.dias||[]).find(function(d){return d.fecha===dk;});
       let cls='col-plato', txt='—';
@@ -2472,8 +2499,12 @@ function exportExcel() {
   });
   header1.push('Ausencias');
 
-  // Filas de personas
-  const dataRows = solMes.map(function(p){
+  // Filas de personas, ordenadas por área y luego por nombre
+  const solOrden = solMes.slice().sort(function(a,b){
+    var ak=areaKey(a).localeCompare(areaKey(b),'es');
+    return ak!==0 ? ak : String(a.nombre||'').localeCompare(String(b.nombre||''),'es');
+  });
+  const dataRows = solOrden.map(function(p){
     const row = [p.nombre, p.email, p.area];
     var ausencias = 0;
     diasOrden.forEach(function(dk){
