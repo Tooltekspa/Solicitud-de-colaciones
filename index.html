@@ -447,7 +447,7 @@ footer span{color:var(--azul3)}
       <div class="sc"><div class="sc-l">Plato B</div><div class="sc-v" id="sB">0</div></div>
       <div class="sc"><div class="sc-l">Plato C</div><div class="sc-v" style="color:var(--cian)" id="sC">0</div></div>
       <div class="sc"><div class="sc-l">Hipocalórico</div><div class="sc-v" style="color:var(--grn)" id="sH">0</div></div>
-      <div class="sc"><div class="sc-l">Vegetariano</div><div class="sc-v" id="sV">0</div></div>
+      <div class="sc"><div class="sc-l">Alt. adicional</div><div class="sc-v" id="sV">0</div></div>
       <div class="sc"><div class="sc-l">Liviano</div><div class="sc-v" id="sL">0</div></div>
       <div class="sc"><div class="sc-l">Ausencias</div><div class="sc-v" id="sAus">0</div></div>
     </div>
@@ -655,7 +655,7 @@ function borrarSesion() {
   sessionStorage.removeItem(SESSION_KEY);
 }
 
-const TL = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia'};
+const TL = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Alt. adicional',L:'Liviano',AUS:'Ausencia'};
 
 // Normaliza el campo mes: convierte "2026-06-01T04:00:00.000Z" → "Junio 2026"
 const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1181,7 +1181,7 @@ function renderSlide(dir='fwd') {
       <div class="shead"><div class="sdate">${d.full}</div><div class="sweek">${d.semana}</div></div>
       <div class="sbody">
         <div class="ssec"><div class="ssec-title">Plato de fondo <span class="sbadge">Elige 1</span></div>
-          <div class="pgrid">${tiposDisp.map(([t,n])=>`<div class="pc${selT===t?' sel':''}" style="--cc:${TC[t]}" onclick="selTipo('${t}',this)"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>${TL[t]}</div><div class="pc-name">${n}</div></div>`).join('')}</div>
+          <div class="pgrid">${tiposDisp.map(([t,n])=>`<div class="pc${selT===t?' sel':''}" style="--cc:${TC[t]}" onclick="selTipo('${t}',this)"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>${TL[t]}${t==='C'?' <span style="font-weight:600;font-size:.6rem;color:var(--grn)">🌱 sin insumo animal</span>':''}</div><div class="pc-name">${n}</div></div>`).join('')}</div>
         </div>
         <div class="ssec" id="ensSec"><div class="ssec-title">Ensalada <span class="sbadge">Elige 1</span></div>${ensSection}<div class="req-msg" id="ensReq">⚠ Selecciona una ensalada</div></div>
         <div class="ssec"><div class="ssec-title">Postre <span class="sbadge">Elige 1</span></div>
@@ -1353,9 +1353,9 @@ function esMinutaSemanal(wb) {
 // ── PARSER MINUTA SEMANAL (multi-hoja) ──────────────────
 // Mapeo de filas → tipos del sistema:
 //   Alt. 1 → A (Plato A) · Alt. 2 → B (Plato B)
-//   ALTERNATIVA ADICIONAL → C (Plato C)
-//   Hipocalórico → H · Alt. 3 (sin insumo animal) → V (Vegetariano)
-//   Sándwich Diario → L (Liviano)
+//   Alt. 3 (NO POSEE INSUMO ANIMAL) → C (Plato C)
+//   Hipocalórico → H · Sándwich Diario → L (Liviano)
+//   ALTERNATIVA ADICIONAL → V (etiqueta "Alt. adicional")
 //   MINI ENSALADA 1/2 → ens[] · Postre 1..4 → pos[]
 function parseMinutaSemanal(wb) {
   const MONTH_NAMES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1387,10 +1387,10 @@ function parseMinutaSemanal(wb) {
     if (!n) return null;
     if (/^ALT\.?\s*1/.test(n)) return 'A';
     if (/^ALT\.?\s*2/.test(n)) return 'B';
-    if (/^ALT\.?\s*3/.test(n)) return 'V';
+    if (/^ALT\.?\s*3/.test(n)) return 'C';        // Alt.3 = Plato C (no posee insumo animal)
     if (n.indexOf('HIPOCAL') !== -1) return 'H';
     if (n.indexOf('SANDWICH') !== -1) return 'L';
-    if (n.indexOf('ALTERNATIVA ADICIONAL') !== -1) return 'C';
+    if (n.indexOf('ALTERNATIVA ADICIONAL') !== -1) return 'V';  // Alternativa adicional
     if (n.indexOf('ENSALAD') !== -1) return 'ENS';
     if (n.indexOf('POSTRE') !== -1) return 'POS';
     return null;
@@ -1943,7 +1943,8 @@ function renderEditModal(){
   const e=_edit, opc=e.opc;
   const platosHTML=opc.platos.map(function(x){
     const t=x[0], n=x[1];
-    return '<div class="pc'+(e.tipo===t?' sel':'')+'" style="--cc:'+TC[t]+'" onclick="editSetTipo(\''+t+'\')"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>'+TL[t]+'</div><div class="pc-name">'+n+'</div></div>';
+    var notaC = (t==='C') ? ' <span style="font-weight:600;font-size:.6rem;color:var(--grn)">🌱 sin insumo animal</span>' : '';
+    return '<div class="pc'+(e.tipo===t?' sel':'')+'" style="--cc:'+TC[t]+'" onclick="editSetTipo(\''+t+'\')"><div class="pc-chk">✓</div><div class="pc-tipo"><div class="pc-dot"></div>'+TL[t]+notaC+'</div><div class="pc-name">'+n+'</div></div>';
   }).join('');
   const ensHTML=(opc.ens.length ? '<div class="chips">'+opc.ens.map(function(en){return '<div class="chip'+(e.ens===en?' sel':'')+'" onclick="editSetEns(\''+esc(en)+'\')">'+en+'</div>';}).join('')+'</div>' : '<div style="font-size:.78rem;color:var(--mut)">Sin ensaladas registradas para este día.</div>');
   const posHTML=opc.pos.length
@@ -2207,12 +2208,12 @@ function renderResumen(solMes) {
 //  PEDIDO EMPRESA — Formato oficial (solo panel admin)
 //  Rellena el template "formato_pedido_empresa.xlsx" alojado en el
 //  repo, preservando estilos, logo y fórmulas (patch XML vía JSZip).
-//  Códigos: 1=Alt1 · 2=Alt2 · 3=Vegano(Alt3) · 4=Hipocalórico
-//           5=Sándwich Diario · 6=Alternativa Adicional
+//  Códigos: 1=Alt1 · 2=Alt2 · 3=Alt3/sin insumo animal(Plato C) · 4=Hipocalórico
+//           5=Sándwich Diario · 6=Alternativa Adicional (fila "ALT 3" del formato)
 //  Ensalada: 1/2 (Mini Ensalada) · Postre: 1=Masa 2=Fruta 3=Jalea 4=Flan
 // ══════════════════════════════════════════════════════
 var PE_TEMPLATE_URL = './formato_pedido_empresa.xlsx';
-var PE_TIPO2COD = {A:1, B:2, V:3, H:4, L:5, C:6};
+var PE_TIPO2COD = {A:1, B:2, C:3, H:4, L:5, V:6};  // C=Alt.3(vegano)→fila VEGANO · V=Alt.adicional→fila ALT 3
 var PE_DAYCOLS = {'Lun':['B','C','D'],'Mar':['E','F','G'],'Mié':['H','I','J'],'Jue':['K','L','M'],'Vie':['N','O','P'],'Sáb':['Q','R','S']};
 var PE_SUMCOL  = {'Lun':'D','Mar':'F','Mié':'H','Jue':'J','Vie':'L','Sáb':'N'};
 var PE_ROW_ENS = {1:66, 2:67}, PE_ROW_ENS_SUM = 68;
@@ -2712,7 +2713,7 @@ function _diaDatos(dk, solMes){
 // Página de CONTEO de un día (cantidades para cocina)
 function _diaConteoPagina(dk, solMes){
   var X=_diaDatos(dk, solMes), dUse=X.dUse, cnt=X.cnt, ensCount=X.ensCount, posCount=X.posCount;
-  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
+  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'};
   var totAlm=cnt.A+cnt.B+cnt.C+cnt.H+cnt.V+cnt.L;
   if(!totAlm && !cnt.AUS) return '';
   var totEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
@@ -2748,7 +2749,7 @@ function _diaConteoPagina(dk, solMes){
 function _diaDetallePagina(dk, solMes){
   var X=_diaDatos(dk, solMes), dUse=X.dUse, personasDia=X.personasDia, ausentes=X.ausentes;
   if(!personasDia.length && !ausentes.length) return '';
-  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
+  var TL_l = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'};
   var rows='';
   personasDia.forEach(function(p,i){
     rows+='<tr'+(i%2===1?' style="background:#f5f8fd"':'')+'>'
