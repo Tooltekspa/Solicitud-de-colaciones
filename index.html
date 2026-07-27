@@ -1469,7 +1469,7 @@ function parseMinutaSemanal(wb) {
         const val = clean(raw);
         if (norm(val) === 'FERIADO') { newMenu[dh.dk].feriado = true; continue; }
         if (cat === 'ENS') {
-          newMenu[dh.dk].ens.push(val.replace(/^ENS\.?\s*/i, '').trim());
+          newMenu[dh.dk].ens.push(val);
         } else if (cat === 'POS') {
           newMenu[dh.dk].pos.push(val);
         } else {
@@ -1503,7 +1503,7 @@ function parseMenuExcelClasico(wb) {
     return String(txt).split(/[\s\-]/)[0];
   }
 
-  function stripEns(s) { return s.replace(/^ENS\.?\s*/i, '').trim(); }
+  function stripEns(s) { return String(s).replace(/^ENS(?![A-Za-zÁÉÍÓÚáéíóúÑñ])\.?\s*\d*\s*[:\-]?\s*/i, '').trim(); }
 
   const CAT_KEYS = {
     'ENSALADAS': 'ENS',
