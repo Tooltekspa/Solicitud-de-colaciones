@@ -1,0 +1,1175 @@
+{
+  "version": 2,
+  "activo": "Julio 2026",
+  "menus": {
+    "Julio 2026": {
+      "menu": {
+        "29/07": {
+          "label": "Mié 29",
+          "full": "Miercoles 29/07/2026",
+          "semana": "SEMANA 5",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "PEPINO",
+            "HABAS CON CEBOLLA"
+          ],
+          "A": "CAZUELA DE AVE",
+          "B": "STROGONOFF DE VACUNO / ARROZ AL PEREJIL",
+          "C": "ZAPALLO ITALIANO RELLENO (MOLIDA)",
+          "H": "PECHUGA DE POLLO AL JUGO",
+          "V": "VEGGIE ZAPALLO ITALIANO RELL. (PROT.SOYA)",
+          "L": "",
+          "pos": [
+            "TORTA SELVA NEGRA",
+            "COMPOTA DE PERA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "30/07": {
+          "label": "Jue 30",
+          "full": "Jueves 30/07/2026",
+          "semana": "SEMANA 5",
+          "ens": [
+            "MIX 4 ESTACIONES",
+            "BRETONA",
+            "APIO"
+          ],
+          "A": "CERDO AL JUGO / PURE DE PAPA (NATURAL)",
+          "B": "SALSA BONTOUX / MOSTACCIOLI PIAMONTESA",
+          "C": "MERLUZA FRITA / APANADA / ARROZ SOL",
+          "H": "VACUNO MECHADO",
+          "V": "VEGGIE HAMBURGUESA DE GARBANZOS (PREELAB)",
+          "L": "",
+          "pos": [
+            "QUEQUE ZANAHORIA CASERO",
+            "JALEA SABORES",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "01/07": {
+          "label": "Mié 01",
+          "full": "Miercoles 01/07/2026",
+          "semana": "SEMANA 1",
+          "ens": [
+            "MIX HOJAS VERDES",
+            "APIO",
+            "PEPINO PIMENTON"
+          ],
+          "A": "VACUNO SALTADO / ARROZ CURRY",
+          "B": "CARBONADA DE AVE",
+          "C": "LASAGNA NAPOLITANA",
+          "H": "VACUNO AL JUGO",
+          "V": "HAMBURGUESA DE LENTEJAS (CASERA)",
+          "L": "",
+          "pos": [
+            "COLEGIAL",
+            "COMPOTA DE PERA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "02/07": {
+          "label": "Jue 02",
+          "full": "Jueves 02/07/2026",
+          "semana": "SEMANA 1",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "CHOCLO",
+            "POROTO VERDE"
+          ],
+          "A": "CHAPSUI DE POLLO / PURE DE PAPAS",
+          "B": "GARBANZOS CON LONGANIZA",
+          "C": "SALSA ALFREDO                                  MOSTACCIOLI AL PEREJIL",
+          "H": "PECHUGA DE POLLO AL OREGANO",
+          "V": "GARBANZOS GUISADOS",
+          "L": "",
+          "pos": [
+            "ARROZ CON LECHE (PREELAB)",
+            "MEDIA LUNA RELLENA MANJAR",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "03/07": {
+          "label": "Vie 03",
+          "full": "Viernes 03/07/2026",
+          "semana": "SEMANA 1",
+          "ens": [
+            "MIX 4 ESTACIONES",
+            "APIO",
+            "BETARRAGA"
+          ],
+          "A": "CERDO PROVENZAL / ARROZ VERDE",
+          "B": "SANDWICH HAMBURGUESA QUESO CHEDDAR PEPINILLO 2UN PF",
+          "C": "CHARQUICAN DE VERDURAS CON CARNE PICADA",
+          "H": "VACUNO MECHADO",
+          "V": "CHARQUICAN DE VERDURAS",
+          "L": "",
+          "pos": [
+            "FLAN CARAMELO SS NARANJA (PREELAB)",
+            "QUEQUE DE ZANAHORIA CASERO",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "06/07": {
+          "label": "Lun 06",
+          "full": "Lunes 06/07/26",
+          "semana": "SEMANA 2",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "PEPINO CON PIMENTON",
+            "BETARRAGA"
+          ],
+          "A": "SALSA BOLOGNESA / SPAGHETTIS",
+          "B": "ESTOFADO DE AVE",
+          "C": "GOULASH DE VACUNO / ARROZ ZANAHORIA",
+          "H": "OMELETTE DE VERDURAS",
+          "V": "SALSA BOLOGNESA PROT SOYA",
+          "L": "",
+          "pos": [
+            "MEDIALUNA",
+            "JALEA CON FRUTA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "07/07": {
+          "label": "Mar 07",
+          "full": "Martes 07/07/2026",
+          "semana": "SEMANA 2",
+          "ens": [
+            "MIX CUATRO HOJAS",
+            "APIO",
+            "MIX PRIMAVERA"
+          ],
+          "A": "POROTOS CON RIENDAS C/ CHORIZO",
+          "B": "PECHUGA DE POLLO ARVEJADA / ARROZ EXOTICO",
+          "C": "SALMON FINAS HIERBAS / PURE DE PAPAS NATURAL",
+          "H": "VACUNO CHAMPIGNON",
+          "V": "POROTOS CON RIENDAS",
+          "L": "",
+          "pos": [
+            "QUEQUE VAINILLA",
+            "COMPOTA DE PERA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "08/07": {
+          "label": "Mié 08",
+          "full": "Miercoles 08/07/2026",
+          "semana": "SEMANA 2",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "POROTOS VERDES",
+            "CHOCLO"
+          ],
+          "A": "POLLO MONGOLIANO / ARROZ CHAUFAN",
+          "B": "CERDO A LA CHILENA / PAPAS DORADAS",
+          "C": "ZAPALLO ITALIANO RELLENO  CARNE",
+          "H": "PECHUGA DE POLLO AL JUGO",
+          "V": "VEGGIE ZAPALLO ITALIANO RELL. (PROT.SOYA)",
+          "L": "",
+          "pos": [
+            "BROWNIE (PREELAB)",
+            "LECHE NEVADA (PREELAB)",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "09/07": {
+          "label": "Jue 09",
+          "full": "Jueves 09/07/2026",
+          "semana": "SEMANA 2",
+          "ens": [
+            "MIX 4 ESTACIONES",
+            "ZAPALLO ITALIANO",
+            "TOMATE CILANTRO"
+          ],
+          "A": "CAZUELA DE VACUNO",
+          "B": "TRUTRO ALITA BBQ / ARROZ BALTIMORE",
+          "C": "ASADO ALEMAN  AL JUGO / PURE RUSTICO",
+          "H": "VACUNO AL JUGO",
+          "V": "ASADO ALEMAN VEGETARIANO",
+          "L": "",
+          "pos": [
+            "MAICENA CON MANJAR",
+            "COLEGIAL",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "10/07": {
+          "label": "Vie 10",
+          "full": "Viernes 10/07/2026",
+          "semana": "SEMANA 2",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "BRETONA",
+            "PEPINO"
+          ],
+          "A": "CHORRILLANA",
+          "B": "CHULETA DE CERDO / MOSTACCIOLI ATOMATADOS",
+          "C": "TOMATICAN / ARROZ PILAF",
+          "H": "JULIANA DE POLLO",
+          "V": "VEGGIE FRITOS DE COLIFLOR VEGETARIANO",
+          "L": "",
+          "pos": [
+            "TORTA SELVA NEGRA",
+            "SEMOLA CON LECHE (PREELAB)",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "13/07": {
+          "label": "Lun 13",
+          "full": "Lunes 13/07/2026",
+          "semana": "SEMANA 3",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "BETARRAGA",
+            "APIO"
+          ],
+          "A": "GOULASH DE VACUNO / ARROZ AL SESAMO",
+          "B": "SALSA BONTOUX / ESPIRALES",
+          "C": "CHULETA DE CERDO PROVENZAL / PAPAS AL OLIVA",
+          "H": "VACUNO AL JUGO",
+          "V": "VEGGIE HAMBURGUESA DE SOYA (PREELAB)",
+          "L": "",
+          "pos": [
+            "BROWNIE",
+            "COMPOTA DE CIRUELAS",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "14/07": {
+          "label": "Mar 14",
+          "full": "Martes 14/07/2026",
+          "semana": "SEMANA 3",
+          "ens": [
+            "MIX CUATRO HOJAS",
+            "CHOCLO",
+            "ZAPALLO ITALIANO"
+          ],
+          "A": "ALBONDIGAS ATOMATADAS / PURE NATURAL",
+          "B": "PECHUGA DE POLLO AL JUGO / TORTILLA DE VERDURAS",
+          "C": "PAELLA VALENCIANA",
+          "H": "PECHUGA DE POLLO AL JUGO",
+          "V": "VEGGIE ALBONDIGAS ATOMATADAS (PROT.SOYA)",
+          "L": "",
+          "pos": [
+            "TORTA TRES LECHES",
+            "PANACOTTA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "15/07": {
+          "label": "Mié 15",
+          "full": "Miercoles 15/07/2026",
+          "semana": "SEMANA 3",
+          "ens": [
+            "SALPICON DE HUEVO",
+            "BETARRAGA",
+            "ARVEJAS CON CEBOLLAS"
+          ],
+          "A": "VACUNO SALTADO / COUSCOUS  AL PIMENTON",
+          "B": "CERDO BBQ / CHOCLO A LA CREMA",
+          "C": "MERLUZA FRITA/APANADA / ARROZ AL CURRY",
+          "H": "VACUNO AL JUGO",
+          "V": "CROQUETA DE GARBANZOS",
+          "L": "",
+          "pos": [
+            "MOTE CON HUESILLO (SIN CAROZO)",
+            "COLEGIAL",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "16/07": {
+          "label": "Jue 16",
+          "full": "Jueves 16/07/2026",
+          "semana": "SEMANA 3",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "PEPINO",
+            "POROTO VERDE"
+          ],
+          "A": "PECHUGA DE POLLO A LA CAMPESINA / PAPAS AL ENELDO",
+          "B": "LENTEJAS PARMESANAS",
+          "C": "SALSA ALFREDO / SPAGUETTIS AL PEREJIL",
+          "H": "PECHUGA DE POLLO A LA CAMPESINA",
+          "V": "LENTEJAS GUISADAS",
+          "L": "",
+          "pos": [
+            "ARROZ CON LECHE (PREELAB)",
+            "MEDIA LUNA RELLENA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "17/07": {
+          "label": "Vie 17",
+          "full": "Viernes 17/07/2026",
+          "semana": "SEMANA 3",
+          "ens": [
+            "MIX 4 ESTACIONES",
+            "APIO",
+            "ZAPALLO ITALIANO"
+          ],
+          "A": "CERDO A LA JARDINERA / ARROZ VERDE",
+          "B": "TACOS DE VACUNO",
+          "C": "CHARQUICAN DE VERDURAS CON CARNE PICADA",
+          "H": "VACUNO MECHADO",
+          "V": "CHARQUICAN DE VERDURAS",
+          "L": "",
+          "pos": [
+            "FLAN CARAMELO SS NARANJA (PREELAB)",
+            "QUEQUE DE CHOCOLATE",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "20/07": {
+          "label": "Lun 20",
+          "full": "Lunes 20/07/2026",
+          "semana": "SEMANA 4",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "BROCOLI",
+            "APIO"
+          ],
+          "A": "PECHUGA DE POLLO ARVEJADO / ARROZ ZANAHORIA",
+          "B": "SALSA BOLOGNESA / ESPIRALES AL OREGANO",
+          "C": "CERDO A LAS FINAS HIERBAS / PAPAS DORADAS",
+          "H": "PECHUGA DE POLLO ARVEJADO",
+          "V": "VEGGIE SALSA BOLOGNESA (PROT.SOYA)",
+          "L": "",
+          "pos": [
+            "MEDIALUNA UN",
+            "DURAZNOS AL JUGO CON CREMA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "21/07": {
+          "label": "Mar 21",
+          "full": "Martes 21/07/2026",
+          "semana": "SEMANA 4",
+          "ens": [
+            "SALPICON DE CHAMPIGNON",
+            "COLIFLOR PIMENTON ROJO",
+            "CHOCLO"
+          ],
+          "A": "POROTOS RIENDA CON LONGANIZA",
+          "B": "CHAPSUI DE VACUNO / PURE DE PAPA (NATURAL)",
+          "C": "GUATITAS A LA JARDINERA / ARROZ PILAF (PERLA)",
+          "H": "VACUNO AL JUGO",
+          "V": "POROTOS CON RIENDA",
+          "L": "",
+          "pos": [
+            "FLAN VAINILLA SS CHOCOLATE (PREELAB)",
+            "TORTA TRES LECHES",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "22/07": {
+          "label": "Mié 22",
+          "full": "Miercoles 22/07/2026",
+          "semana": "SEMANA 4",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "POROTO VERDE",
+            "BETARRAGA"
+          ],
+          "A": "SALSA ITALIANA / MOSTACCIOLI AL ENELDO",
+          "B": "PECHUGA DE POLLO AL CURRY / ARROZ AL PIMENTON",
+          "C": "PASTEL DE PAPAS CON CARNE",
+          "H": "OMELLETTE DE VERDURAS",
+          "V": "PASTEL DE PAPAS (PROT SOYA)",
+          "L": "",
+          "pos": [
+            "BRAZO DE REINA",
+            "COMPOTA DE MANZANA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "23/07": {
+          "label": "Jue 23",
+          "full": "Jueves 23/07/2026",
+          "semana": "SEMANA 4",
+          "ens": [
+            "MIX CUATRO HOJAS",
+            "ZAPALLO ITALIANO",
+            "TOMATE CILANTRO"
+          ],
+          "A": "VACUNO A LA CACEROLA / PURE VERDE",
+          "B": "HAMBURGUESA NAPOLITANA / QUIFAROS",
+          "C": "CHULETA DE CERDO CON SALSA BBQ / SALTEADO DE VERDURAS A LA SOYA",
+          "H": "VACUNO A LA CACEROLA",
+          "V": "VEGGIE HAMBURGUESA DE   SOYA AL JUGO  (PREELAB)",
+          "L": "",
+          "pos": [
+            "COLEGIAL",
+            "LECHE NEVADA (PREELAB)",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "24/07": {
+          "label": "Vie 24",
+          "full": "Viernes 24/07/2026",
+          "semana": "SEMANA 4",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "COLIFLOR",
+            "PEPINO"
+          ],
+          "A": "PIZZA NAPOLITANA PAPA JOHNS",
+          "B": "TOMATICAN / PAPAS DORADAS",
+          "C": "CERDO PEKIN / SPAGUETTI AL OLIVA (SALSA)",
+          "H": "POLLO ASADO (TRUTRO ENTERO)",
+          "V": "VEGGIE FRITOS DE COLIFLOR VEGETARIANO",
+          "L": "",
+          "pos": [
+            "BROWNIE (PREELAB)",
+            "JALEA SABORES",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "27/07": {
+          "label": "Lun 27",
+          "full": "Lunes 27/07/2026",
+          "semana": "SEMANA 5",
+          "ens": [
+            "LECHUGA ESCAROLA (PICADA)",
+            "BROCOLI",
+            "PEPINO"
+          ],
+          "A": "PECHUGA DE POLLO A LA CUERNAVACA / ARROZ AL PIMENTON",
+          "B": "ALBONDIGAS ATOMATADAS / SPAGUETTIS",
+          "C": "GOULASH DE CERDO / PAPAS AL ENELDO",
+          "H": "PECHUGA DE POLLO A LA CUERNAVACA",
+          "V": "VEGGIE ALBONDIGAS ATOMATADAS (PROT.SOYA)",
+          "L": "",
+          "pos": [
+            "BRAZO DE REINA",
+            "DURAZNOS AL JUGO CON CREMA",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "28/07": {
+          "label": "Mar 28",
+          "full": "Martes 28/07/2026",
+          "semana": "SEMANA 5",
+          "ens": [
+            "MIX CUATRO HOJAS",
+            "POROTO VERDE",
+            "APIO"
+          ],
+          "A": "VACUNO AL CHAMPIGNON / CAVATAPPI AL OLIVA",
+          "B": "BUDIN DE ATUN / PURE AL MERKEN (NATURAL)",
+          "C": "LENTEJAS CON CHORIZO",
+          "H": "VACUNO AL CHAMPIGNON",
+          "V": "LENTEJAS GUISADAS",
+          "L": "",
+          "pos": [
+            "MEDIALUNA RELLENA MANJAR",
+            "SEMOLA CON LECHE (PREELAB)",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        },
+        "31/07": {
+          "label": "Vie 31",
+          "full": "Viernes 31/07/2026",
+          "semana": "SEMANA 5",
+          "ens": [
+            "SALPICON DE HUEVO",
+            "BETARRAGA",
+            "PAPAS MAYO"
+          ],
+          "A": "SALSA ALFREDO / ESPIRALES AL OREGANO",
+          "B": "SANDWICH CHURRASCO ITALIANO 2UN PF",
+          "C": "ESTOFADO DE VACUNO",
+          "H": "PECHUGA DE POLLO AL AJILLO",
+          "V": "ESTOFADO (PROT.SOYA)",
+          "L": "",
+          "pos": [
+            "BROWNIE",
+            "FLAN VAINILLA SS CHOCOLATE (PREELAB)",
+            "FRUTA NATURAL"
+          ],
+          "feriado": false
+        }
+      },
+      "dates": [
+        "01/07",
+        "02/07",
+        "03/07",
+        "06/07",
+        "07/07",
+        "08/07",
+        "09/07",
+        "10/07",
+        "13/07",
+        "14/07",
+        "15/07",
+        "16/07",
+        "17/07",
+        "20/07",
+        "21/07",
+        "22/07",
+        "23/07",
+        "24/07",
+        "27/07",
+        "28/07",
+        "29/07",
+        "30/07",
+        "31/07"
+      ]
+    },
+    "Agosto 2026": {
+      "menu": {
+        "03/08": {
+          "label": "Lun 03",
+          "full": "LUNES 03/08",
+          "semana": "SEMANA DEL 03-08 AL 09 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, ESPINACA REPOLLO BLANCO ADEREZO VINAGRETA",
+            "PAPAS, PRIMAVERA, MAYO Y SAL"
+          ],
+          "A": "MERLUZA APANADA SALSA TÁRTARA ARROZ CASERO",
+          "B": "TALLARINES CON SALSA BONTOUX",
+          "C": "GUISO DE POROTOS NEGROS CON ARROZ PILAF",
+          "H": "ENSALADA CESAR POLLO",
+          "V": "POROTOS CON RIENDA Y LONGANIZA",
+          "L": "PANINI SALAME",
+          "pos": [
+            "QUEQUE ZANAHORIA",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "04/08": {
+          "label": "Mar 04",
+          "full": "MARTES 04/08",
+          "semana": "SEMANA DEL 03-08 AL 09 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, TOMATE, REPOLLO BLANCO, MANI ADEREZO MOSTAZA MIEL",
+            "ALADA CHILENA"
+          ],
+          "A": "MEDALLON DE CERDO ASADO CHIMICHURRI CON PURÉ TRADICIONAL",
+          "B": "FILETE DE POLLO PIZZAIOLA CON QUINOA SALTEADA",
+          "C": "QUÍFAROS A LA OLIVA CON RAGOUT VEGANO",
+          "H": "OMELETTE DE POLLO CON VEGETALES AL VAPOR",
+          "V": "LASAGNA ZAPALLO BERENJENA",
+          "L": "BAGUETTE POLLO MOSTAZA",
+          "pos": [
+            "SEMOLA MARMOL",
+            "FRUTA ENTERA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "05/08": {
+          "label": "Mié 05",
+          "full": "MIERCOLES 05/08",
+          "semana": "SEMANA DEL 03-08 AL 09 DE AGOSTO DE 2026",
+          "ens": [
+            "BROCOLÍ, COLIFLOR, POROTOS VERDES ADEREZO VINAGRETA",
+            "PAPAS MAYO PAPA, MAYO, CILANTRO Y SAL"
+          ],
+          "A": "POLLO A LA CHILENA CON PEBRE Y PAPAS DORADAS",
+          "B": "ESPIRALES CON SALSA BOLOGNESA DE CARNE",
+          "C": "PASTEL DE ACELGA CON CARNE DE SOYA",
+          "H": "ENSALADA MEDITERRANEA",
+          "V": "CAZUELA ALBONDIGA",
+          "L": "TOSCANO POLLO",
+          "pos": [
+            "BERLIN CON CREMA PASTELERA",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "06/08": {
+          "label": "Jue 06",
+          "full": "JUEVES 06/08",
+          "semana": "SEMANA DEL 03-08 AL 09 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, TOMATE, PEPINO, ADEREZO MAYO PEREJIL",
+            "POROTO BLANCO, CEBOLLA MORADA, CILANTRO, ACEITE DE OLIVA, SUCEDANEO Y SAL"
+          ],
+          "A": "MEDALLON DE CARNE CON SALSA ESPAÑOLA PURÉ MERKÉN",
+          "B": "GOULASH DE POLLO CON ARROZ PILAF",
+          "C": "CORBATITAS A LA OLIVA CON SALSA ARRABIATA CON SOYA",
+          "H": "PESCADO AL LIMON SALSA AL LIMON CON VEGETALES ASADOS AL ROMERO",
+          "V": "MENESTRON",
+          "L": "PANINI CARNE QUESO",
+          "pos": [
+            "COLEGIAL PASAS",
+            "FRUTA ENTERA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "07/08": {
+          "label": "Vie 07",
+          "full": "VIERNES 07/08",
+          "semana": "SEMANA DEL 03-08 AL 09 DE AGOSTO DE 2026",
+          "ens": [
+            "REPOLLO BLANCO, BETARRAGA, ZANAHORIA, ADEREZO MAYO PEREJIL",
+            "BETARRAGA , PAPA, MAYO, CILANTRO,ACEITE DE OLIVA, SAL."
+          ],
+          "A": "SANDW. HAMB. CRIOLLA L. LOLO, PEPINILLO), CON SALSA GOLF Y PAPAS FRITAS",
+          "B": "QUÍFAROS A LA MANTEQUILLA CON SALSA ALFREDO",
+          "C": "GUISO DE GARBANZOS",
+          "H": "ANTIPASTO",
+          "V": "PASTEL SUIZO",
+          "L": "FRICA LOMITO QUESO",
+          "pos": [
+            "ROLL DE CANELA",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "08/08": {
+          "label": "Sáb 08",
+          "full": "SABADO 08/08",
+          "semana": "SEMANA DEL 03-08 AL 09 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, TOMATE, CHOCLO ADEREZO MAYO PEREJIL",
+            "COCHAYUYO, CEBOLLA, CILANTRO, ACEITE DE OLIVA, SUCEDANEO, SAL"
+          ],
+          "A": "CERDO SALTADO CON ARROZ FRITO",
+          "B": "ALBÓNDIGAS CRIOLLAS EN SALSA POMODORO CON ESPIRALES A LA OLIVA",
+          "C": "CURRY DE VERDURAS CON ARROZ PILAF",
+          "H": "ENSALADA HUEVO POLLO",
+          "V": "",
+          "L": "WRAP DE HUMMUS",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "09/08": {
+          "label": "Dom 09",
+          "full": "DOMINGO 09/08",
+          "semana": "SEMANA DEL 03-08 AL 09 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, TOMATE,PEPINO ADEREZO LIMONETA CILANTRO",
+            "HABAS, CEBOLLA MORADA, ACEITE DE OLIVA, SAL"
+          ],
+          "A": "FILETE DE POLLO MARIPOSA EN SALSA FINAS HIERBAS CON PURÉ ESPINACA",
+          "B": "QUÍFAROS ATOMATADOS CON ROPA VIEJA",
+          "C": "",
+          "H": "",
+          "V": "",
+          "L": "",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "10/08": {
+          "label": "Lun 10",
+          "full": "LUNES 10/08",
+          "semana": "SEMANA DEL 10-08 AL 16 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA Y PRIMAVERA ADEREZO MAYO PEREJIL",
+            "PAPA, CHOCLO, CILANTRO, SAL Y MAYO"
+          ],
+          "A": "CORDON BLUE DE POLLO SALSA GOLF PURÉ CASERO",
+          "B": "GOULASH DE CARNE CON ARROZ PILAF",
+          "C": "PASTA CON SALSA ARRABIATA",
+          "H": "FILETILLO DE POLLO EN SALSA CRIOLLA CON QUINOA MEDITERRÁNEA",
+          "V": "GARBANZOS A LA ESPAÑOLA",
+          "L": "PANINI POLLO",
+          "pos": [
+            "GALLETA DE MANTEQUILLA",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "11/08": {
+          "label": "Mar 11",
+          "full": "MARTES 11/08",
+          "semana": "SEMANA DEL 10-08 AL 16 DE AGOSTO DE 2026",
+          "ens": [
+            "COLIFLOR, PIMENTON MIX ADEREZO LIMONETA",
+            "POROTOS NEGROS, TOMATE, CILANTRO, ACEITE DE OLIVA Y SAL"
+          ],
+          "A": "ESCALOPA DE CARNE EN SALSA TÁRTARA CON ARROZ CHOCLO",
+          "B": "PASTA CON POLLO SALTADO",
+          "C": "CANOA DE VEGETALES VEGANA EN SALSA POMODORO CON VEGETALES ASADOS AL ROMERO",
+          "H": "ENSALADA DE ATÚN",
+          "V": "LASAGNA BOLOGNESA DE CARNE",
+          "L": "FRICA CHURRASCO QUESO",
+          "pos": [
+            "LECHE ASADA CASERA",
+            "FRUTA ENTERA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "12/08": {
+          "label": "Mié 12",
+          "full": "MIERCOLES 12/08",
+          "semana": "SEMANA DEL 10-08 AL 16 DE AGOSTO DE 2026",
+          "ens": [
+            "REPOLLO BLANCO, LECHUGA ESCAROLA, BETARRAGA. ADEREZO MAYO PEREJIL",
+            "COCHAYUYO, CEBOLLA MORADA, CILANTRO, SUCEDANEO, ACEITE DE OLIVA Y SAL"
+          ],
+          "A": "CHORRILLANA",
+          "B": "POLLO A LA CHILENA CHIMICHURRI ARROZ CHOCLO",
+          "C": "PASTEL DE CHOCLO",
+          "H": "PESCADO SALSA FINAS HIERBAS PURÉ RÚSTICO",
+          "V": "VALDIVIANO",
+          "L": "BAGUETTE POLLO ALCACHOFA",
+          "pos": [
+            "CALZONES ROTOS",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "13/08": {
+          "label": "Jue 13",
+          "full": "JUEVES 13/08",
+          "semana": "SEMANA DEL 10-08 AL 16 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, PEPINO, TOMATE, CILANTRO. ADEREZO MAYO PEREJIL",
+            "QUINOA TOMATE, PEPINO CILANTRO, ACEITE DE OLIVA, SAL"
+          ],
+          "A": "POLLO PANKO CON SALSA TERIYAKI Y ARROZ FRITO",
+          "B": "PESCADO NAPOLITANO CON PURÉ DE CAMPO",
+          "C": "CROQUETA DE GARBANZO NOT MAYO AL AJO CON PAPAS AL ROMERO",
+          "H": "ENSALADA HUEVO POLLO",
+          "V": "LENTEJAS CAMPESINAS",
+          "L": "FOCACCIA TERIYAKI",
+          "pos": [
+            "COLEGIAL",
+            "FRUTA ENTERA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "14/08": {
+          "label": "Vie 14",
+          "full": "VIERNES 14/08",
+          "semana": "SEMANA DEL 10-08 AL 16 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA ZAP ITALIANO, ZANAHORIA. ADEREZO VINAGRETA",
+            "PAPA, MAYO Y SAL"
+          ],
+          "A": "SANDWICH CHACARERO LOMITO CON MAYO MERKÉN Y PAPAS RÚSTICAS",
+          "B": "POLLO A LA LIMEÑA CON ARROZ TURCO",
+          "C": "2 EMPANADAS VEGANAS CON PEBRE",
+          "H": "FILETTE DE POLLO EN SALSA CRIOLLA CON COUS COUS GRIEGO",
+          "V": "PIZZA PORK BBQ",
+          "L": "PANINI SALMON QUESO CREMA",
+          "pos": [
+            "COMPOTA DE FRUTAS",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "15/08": {
+          "label": "Sáb 15",
+          "full": "SABADO 15/08",
+          "semana": "SEMANA DEL 10-08 AL 16 DE AGOSTO DE 2026",
+          "ens": [
+            "REPOLLO BLANCO, REPOLLO MORADO, ZANAHORIA. ADEREZO MAYO PEREJIL",
+            "CHILENA TOMATE,, CEBOLLA, CILANTRO, ACEITE DE OLIVA Y SAL"
+          ],
+          "A": "FILETE DE POLLO EN SALSA CRIOLLA CON ARROZ PRIMAVERA",
+          "B": "ESPIRALES CON SALSA BOLOGNESA DE CARNE",
+          "C": "HAMBURQUESA DE SOYA PAPAS DORADAS NOT MAYO",
+          "H": "ENSALADA POLLO PANKO",
+          "V": "",
+          "L": "PANINI PEPERONI",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "16/08": {
+          "label": "Dom 16",
+          "full": "DOMINGO 16/08",
+          "semana": "SEMANA DEL 10-08 AL 16 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHIGA ESCAROLA, CHOCLO, ESPINACA ADEREZO MAYO PEREJIL",
+            "LECHUGA, ZAPALLO ITALIANO, ZANAHORIA ADEREZO VINAGRETA"
+          ],
+          "A": "CHULETA DE CERDO SALSA BBQ PURÉ LYONESA",
+          "B": "",
+          "C": "PASTA INTEGRAL CON SALSA PUTANESCA",
+          "H": "",
+          "V": "",
+          "L": "",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "17/08": {
+          "label": "Lun 17",
+          "full": "LUNES 17/08",
+          "semana": "SEMANA DEL 17-08 AL 23 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, REPOLLO BLANCO, ESPINACA, APIO ADEREZO ADEREZO LIMONETA",
+            "QUINOA, TOMATE, PEPINO, CILANTRO, ACEITE DE OLIVA, SAL"
+          ],
+          "A": "TRUTO DE POLLO DESHUESADO CON CHIMICHURRI Y PURÉ",
+          "B": "TALLARINES AL CIBOULETTE CON SALSA ALFREDO",
+          "C": "CURRY DE VERDURAS CON ARROZ PILAF",
+          "H": "ENSALADA CARLEANA",
+          "V": "LENTEJAS CAMPESINAS",
+          "L": "BAGUETTE JAMON DE PAVO",
+          "pos": [
+            "QUEQUE LIMON AMAPOLA",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "18/08": {
+          "label": "Mar 18",
+          "full": "MARTES 18/08",
+          "semana": "SEMANA DEL 17-08 AL 23 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, PEPINO, TOMATE, ADEREZO MAYO PEREJIL",
+            "HABAS, CEBOLLA MORADA BRUNOISE, ACEITE DE OLIVA, SAL"
+          ],
+          "A": "MEDALLÓN DE VACUNO, SALSA GRAVY, CON ARROZ PILAF",
+          "B": "POLLO TOSCANO CON ARROZ AL CILANTRO",
+          "C": "TOMATE RELLENO CON QUÍNOA",
+          "H": "QUESADILLA DE POLLO CON ADEREZO MAYO PEREJIL MIX DE HOJAS",
+          "V": "CARBONADA CARNE",
+          "L": "TOSCANO POLLO",
+          "pos": [
+            "MANZANA ASADA C/CREMA CHANTILLY",
+            "FRUTA ENTERA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "19/08": {
+          "label": "Mié 19",
+          "full": "MIERCOLES 19/08",
+          "semana": "SEMANA DEL 17-08 AL 23 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, ZANAHORIA, REPOLLO BLANCO ADEREZO MAYO PEREJIL",
+            "COLIFLOR, ZANAHORIA ADEREZO LIMONETA"
+          ],
+          "A": "MILANESA DE POLLO, SALSA BBQ, CON PURÉ LYONESA",
+          "B": "TOMATICÁN DE CARNE CON ARROZ PEREJIL",
+          "C": "ALBONDIGAS DE SOYA CON SALSA POMODORO ALBAHACA Y TALLARINES INTEGRALES",
+          "H": "ENSALADA POLLO TERIYAKI",
+          "V": "GARBANZOS CAMPESINOS",
+          "L": "BAGUETTE POLLO QUESO",
+          "pos": [
+            "ARROZ CON LECHE",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "20/08": {
+          "label": "Jue 20",
+          "full": "JUEVES 20/08",
+          "semana": "SEMANA DEL 17-08 AL 23 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, REPOLLO MORADO, ZANAHORIA, ADEREZO MOSTAZA MIEL.",
+            "ARROZ, CHOCLO, ACEITUNAS, CILANTRO, MAYO Y SAL"
+          ],
+          "A": "PASTA CON SALSA BOLOGNESA",
+          "B": "CHULETA DE CERDO EN SALSA AGRIDULCE CON PURÉ MIXTO",
+          "C": "CANELONES DE ZAPALLO ITALIANO EN SALSA POMODORO ALBAHACA",
+          "H": "OMELETTE DE CHAMPIÑONES CON QUINOA SALTEADA",
+          "V": "CAZUELA DE POLLO",
+          "L": "PANINI SALAME",
+          "pos": [
+            "COMPOTA DE FRUTAS",
+            "FRUTA ENTERA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "21/08": {
+          "label": "Vie 21",
+          "full": "VIERNES 21/08",
+          "semana": "SEMANA DEL 17-08 AL 23 DE AGOSTO DE 2026",
+          "ens": [
+            "REPOLLO BLANCO, ZANAHORIA, ESPINACA, ADEREZO MAYO PEREJIL",
+            "PASTA CORTA, VEGETALES SALTEADOS, MAYO Y SAL"
+          ],
+          "A": "SANDWICH FOCACCIA MECHADA QUESO CON MAYO AJO Y PAPAS RÚSTICAS",
+          "B": "CHAPSUI DE POLLO CON ARROZ CHOCLO",
+          "C": "PIZZA DEL HUERTO",
+          "H": "ENSALADA PRIMAVERA",
+          "V": "PIZZA POLLO BBQ",
+          "L": "BAGUETTE JAMON SERRANO",
+          "pos": [
+            "TURRON DE VINO Y NUECES",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "22/08": {
+          "label": "Sáb 22",
+          "full": "SABADO 22/08",
+          "semana": "SEMANA DEL 17-08 AL 23 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, BETARRAGA, CHOCLO ADEREZO MAYO PEREJIL",
+            "PAPAS, MAYO, SAL"
+          ],
+          "A": "GOULASH DE CERDO, CON ARROZ PILAF",
+          "B": "RIGATTONI A LA MANTEQUILLA CON SALSA 3 QUESOS",
+          "C": "HAMBURGUESA DE POROTOS EN SALSA POMODORO CON ARROZ EXÓTICO",
+          "H": "TORTILLA ESPAÑOLA CON VEGETALES SALTEADOS",
+          "V": "",
+          "L": "WRAP DE POLLO",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "23/08": {
+          "label": "Dom 23",
+          "full": "DOMINGO 23/08",
+          "semana": "SEMANA DEL 17-08 AL 23 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, TOMATE, CHOCLO ADEREZO MAYO PEREJIL",
+            "COCHAYUYO, CEBOLLA, CILANTRO, ACEITE DE OLIVA, SUCEDANEO, SAL"
+          ],
+          "A": "HAMBURGUESA CRIOLLA EN SALSA AGRIDULCE CON ARROZ PRIMAVERA",
+          "B": "POLLO AL COÑAC CON PURE TRADICIONAL",
+          "C": "CORBATITAS A LA OLIVA CON RAGOUT VEGANO",
+          "H": "",
+          "V": "",
+          "L": "",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "24/08": {
+          "label": "Lun 24",
+          "full": "LUNES 24/08",
+          "semana": "SEMANA DEL 24-08 AL 31 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, REPOLLO BLANCO, ESPINACA, APIO ADEREZO LIMONETA",
+            "PAPA, CHOCLO, CILANTRO, SAL Y MAYO"
+          ],
+          "A": "TRUTO DE POLLO ASADO EN SALSA AGRIDULCE CON PURÉ MERKÉN",
+          "B": "PASTA CON SALSA MARINERA",
+          "C": "ESPIRALES AL CIBOULETTE CON SALSA CHAMPIÑONES",
+          "H": "SALPICAO DE POLLO",
+          "V": "PASTEL SUIZO",
+          "L": "PANINI CARNE QUESO",
+          "pos": [
+            "QUEQUE PLATANO",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "25/08": {
+          "label": "Mar 25",
+          "full": "MARTES 25/08",
+          "semana": "SEMANA DEL 24-08 AL 31 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, ZAPALLO ITALIANO , ZANAHORIA, ADEREZO VINAGRETA",
+            "POROTOS NEGROS, TOMATE, CILANTRO, ACEITE DE OLIVA Y SAL"
+          ],
+          "A": "STROGONOFF DE CARNE CON ARROZ CASERO",
+          "B": "CORDON BLUE DE POLLO CON PURÉ PIAMONTESA",
+          "C": "CROQUETA DE GARBANZO CON PEBRE Y ARROZ PILAF",
+          "H": "ENSALADA CESAR PANKO",
+          "V": "GARBANZOS CAMPESINOS",
+          "L": "TOSCANO POLLO",
+          "pos": [
+            "PERA AL VINO",
+            "FRUTA ENTERA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "26/08": {
+          "label": "Mié 26",
+          "full": "MIERCOLES 26/08",
+          "semana": "SEMANA DEL 24-08 AL 31 DE AGOSTO DE 2026",
+          "ens": [
+            "REPOLLO BLANCO, ZANAHORIA. ADEREZO MAYO PEREJIL",
+            "COLIFLOR, ZANAHORIA, PAPA ADEREZO LIMONETA"
+          ],
+          "A": "MEDALLON DE CERDO ASADO SALSA AL JUGO CON PAPAS RÚSTICAS",
+          "B": "ROPA VIEJA CON ARROZ PILAF",
+          "C": "PAPA RELLENA (2 UNIDADES) SALSA NOT MAYO Y MIX DE HOJAS",
+          "H": "FILETILLO DE POLLO CON SALSA POMMODORO ALBAHACA Y PASTA INTEGRAL",
+          "V": "LASAGNA BOLOÑESA DE POLLO",
+          "L": "BAGUETTE ATÚN",
+          "pos": [
+            "GALLETA DE VAINILLA",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "27/08": {
+          "label": "Jue 27",
+          "full": "JUEVES 27/08",
+          "semana": "SEMANA DEL 24-08 AL 31 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, TOMATE , APIO, ZANAHORIA, ADEREZO LIMONETA",
+            "BETARRAGA, PAPA, MAYO, SAL Y CILANTRO"
+          ],
+          "A": "POLLO ARVEJADO CON PURÉ MIXTO",
+          "B": "GUISO DE ZAPALLO ITALIANO CON CARNE CON ARROZ Y PAPAS DORADAS",
+          "C": "PIMENTON RELLENO PINO DE SOYA Y CHOCLO CON MIX DE HOJAS",
+          "H": "ENSALADA CARLEANA",
+          "V": "PANTRUCAS",
+          "L": "BAGUETTE CAPRESSE",
+          "pos": [
+            "ALFAJOR",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "28/08": {
+          "label": "Vie 28",
+          "full": "VIERNES 28/08",
+          "semana": "SEMANA DEL 24-08 AL 31 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, TOMATE, ESPINACA ADEREZO LIMONETA",
+            "QUINOA TOMATE, PEPINO CILANTRO, ACEITE DE OLIVA, SAL"
+          ],
+          "A": "SANDWICH HAMBURGUESA MIXTA SALSA GOLF CON PAPAS RÚSTICAS",
+          "B": "GOULASH DE POLLO CON ARROZ PILAF",
+          "C": "CLUB SANDWICH MULTIGRANO CON VEGETALES Y PAPAS RÚSTICAS",
+          "H": "QUICHE DE CEBOLLA TOCINO PANACHE DE VERDURAS",
+          "V": "PASTA AL FORNO DE POLLO",
+          "L": "FOCACCIA TERIYAKI",
+          "pos": [
+            "BRAZO DE REINA",
+            "FRUTA PICADA",
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "29/08": {
+          "label": "Sáb 29",
+          "full": "SABADO 29/08",
+          "semana": "SEMANA DEL 24-08 AL 31 DE AGOSTO DE 2026",
+          "ens": [
+            "REPOLLO BLANCO, BETARRAGA, ZANAHORIA, ADEREZO MAYO PEREJIL",
+            "CHILENA TOMATE , CEBOLLA, CILANTRO, ACEITE DE OLIVA Y SAL"
+          ],
+          "A": "CARNE A LA BOURGUIÑÓN CON ARROZ TURCO",
+          "B": "ESPIRALES CON SALSA LA NONNA",
+          "C": "GUISO DE POROTOS NEGROS CON ARROZ",
+          "H": "ENSALADA JAMON PALTA",
+          "V": "",
+          "L": "FRICA CHURRASCO",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        },
+        "30/08": {
+          "label": "Dom 30",
+          "full": "DOMINGO 30/08",
+          "semana": "SEMANA DEL 24-08 AL 31 DE AGOSTO DE 2026",
+          "ens": [
+            "LECHUGA ESCAROLA, PEPINO, TOMATE, ADEREZO LIMONETA",
+            "LECHUGA, ZAPALLO ITALIANO, ZANAHORIA ADEREZO VINAGRETA"
+          ],
+          "A": "CHULETA DE CERDO SALSA BBQ CON PAPAS DORADAS",
+          "B": "GUISO DE ESPINACA CON CARNE Y ARROZ PILAF",
+          "C": "PASTA CON SALSA BOLOGNESA DE SOYA",
+          "H": "",
+          "V": "",
+          "L": "",
+          "pos": [
+            "JALEA",
+            "FLAN"
+          ],
+          "feriado": false
+        }
+      },
+      "dates": [
+        "03/08",
+        "04/08",
+        "05/08",
+        "06/08",
+        "07/08",
+        "08/08",
+        "09/08",
+        "10/08",
+        "11/08",
+        "12/08",
+        "13/08",
+        "14/08",
+        "15/08",
+        "17/08",
+        "18/08",
+        "19/08",
+        "20/08",
+        "21/08",
+        "22/08",
+        "23/08",
+        "24/08",
+        "25/08",
+        "26/08",
+        "27/08",
+        "28/08",
+        "29/08",
+        "30/08"
+      ]
+    }
+  },
+  "updated": "2026-07-27T16:51:37.766Z"
+}
