@@ -2159,27 +2159,6 @@ function renderTable(solMes) {
   }
 }
 
-// ══════════════════════════════════════════════════════
-//  REGLA DE CONTEO DE ENSALADAS
-//  El plato hipocalórico ya trae su ensalada incluida, por lo tanto
-//  quien pide Hipocalórico NO suma en el conteo de ensaladas
-//  (aunque haya elegido una en el formato nuevo: se muestra en el
-//   detalle por persona, pero no se cuenta ni se pide al proveedor).
-//  Poner en false para volver a contar a todos.
-// ══════════════════════════════════════════════════════
-var ENS_EXCLUIR_HIPO = true;
-
-function ensCuenta(dia){
-  if(!dia || dia.ausente) return false;
-  if(ENS_EXCLUIR_HIPO && dia.tipo === 'H') return false;
-  return !!(dia.ens && dia.ens !== '(incluida)' && dia.ens !== '');
-}
-// ¿La persona eligió ensalada pero se descuenta por ser hipocalórico?
-function ensDescontada(dia){
-  return !!(ENS_EXCLUIR_HIPO && dia && !dia.ausente && dia.tipo === 'H'
-            && dia.ens && dia.ens !== '(incluida)' && dia.ens !== '');
-}
-
 function renderResumen(solMes) {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
   if(!solMes.length){rs.style.display='none';return;}
@@ -2215,18 +2194,15 @@ function renderResumen(solMes) {
     const ensCount={};
     // Postres: todos
     const posCount={};
-    var ensHipo=0; // ensaladas elegidas por hipocalóricos (descontadas)
 
     solMes.forEach(function(p){
       const dia=p.dias.find(function(x){return x.fecha===dk;});
       if(!dia)return;
       if(dia.ausente){cnt.AUS++;return;}
       if(cnt[dia.tipo]!==undefined) cnt[dia.tipo]++;
-      // Ensalada: NO cuenta el hipocalórico (ya la trae incluida)
-      if(ensCuenta(dia)){
+      // Ensalada: cuenta para todos los fondos (incluido hipocalórico)
+      if(dia.ens && dia.ens!=='(incluida)' && dia.ens!==''){
         ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;
-      } else if(ensDescontada(dia)){
-        ensHipo++;
       }
       if(dia.pos) posCount[dia.pos]=(posCount[dia.pos]||0)+1;
     });
@@ -2270,14 +2246,9 @@ function renderResumen(solMes) {
     var totalEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
     var totalPos=Object.values(posCount).reduce(function(a,b){return a+b;},0);
 
-    // Nota: ensaladas elegidas por hipocalóricos que NO se cuentan
-    var notaHipo = ensHipo
-      ? '<tr><td></td><td colspan="2" style="font-size:.63rem;color:var(--mut);font-style:italic;padding-top:2px">🥗 '+ensHipo+' hipocalórico'+(ensHipo>1?'s':'')+' no suma'+(ensHipo>1?'n':'')+' ensalada (ya incluida)</td></tr>'
-      : '';
-
     return '<div class="rc3"><table>'+
       '<thead><tr><th class="rh-tipo">Tipo</th><th class="rh-desc">'+dUse.full+'</th><th class="rh-num">pedido</th></tr></thead>'+
-      '<tbody>'+ensRows+notaHipo+almRows+posRows+ausRow+'</tbody>'+
+      '<tbody>'+ensRows+almRows+posRows+ausRow+'</tbody>'+
       '<tfoot>'+
       (totalEns?'<tr class="rtot"><td></td><td>Ensalada</td><td>'+totalEns+'</td></tr>':'')+
       (totalAlmuerzo?'<tr class="rtot"><td></td><td>Almuerzo</td><td>'+totalAlmuerzo+'</td></tr>':'')+
@@ -2442,8 +2413,7 @@ async function generarPedidoEmpresa(idx){
       var cols=PE_DAYCOLS[dw];
       if(!cols){ if(dw==='Dom') omitidosDom++; return; }
       var codF=PE_TIPO2COD[dia.tipo]||0;
-      // Ensalada: el hipocalórico NO pide ensalada aparte (ya incluida)
-      var codE=ensCuenta(dia) ? peEnsCode(dia.fecha, dia.ens) : 0;
+      var codE=peEnsCode(dia.fecha, dia.ens);
       var codP=pePosCode(dia.pos);
       if(codE){ celdas[cols[0]]=codE; cnt.ens[dw][codE]=(cnt.ens[dw][codE]||0)+1; }
       if(codF){ celdas[cols[1]]=codF; cnt.alm[dw][codF]=(cnt.alm[dw][codF]||0)+1; tiene=true; }
@@ -2784,26 +2754,23 @@ function _diaDatos(dk, solMes){
   }
   var cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0};
   var ensCount={}, posCount={};
-  var ensHipo=0; // ensaladas elegidas por hipocalóricos (descontadas)
   var personasDia=[], ausentes=[];
   solMes.forEach(function(p){
     var dia=p.dias.find(function(x){return x.fecha===dk;});
     if(!dia) return;
     if(dia.ausente){ cnt.AUS++; ausentes.push(p.nombre); return; }
     if(cnt[dia.tipo]!==undefined) cnt[dia.tipo]++;
-    // Ensalada: NO cuenta el hipocalórico (ya la trae incluida)
-    if(ensCuenta(dia)) ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;
-    else if(ensDescontada(dia)) ensHipo++;
+    if(dia.ens&&dia.ens!=='(incluida)'&&dia.ens!=='') ensCount[dia.ens]=(ensCount[dia.ens]||0)+1;
     if(dia.pos) posCount[dia.pos]=(posCount[dia.pos]||0)+1;
     personasDia.push({nombre:p.nombre, tipo:dia.tipo, fondo:dia.fondo||'', ens:dia.ens||'', pos:dia.pos||''});
   });
   personasDia.sort(function(a,b){ var ord={A:0,B:1,C:2,H:3,V:4,L:5}; return (ord[a.tipo]||9)-(ord[b.tipo]||9); });
-  return {dUse:dUse, cnt:cnt, ensCount:ensCount, posCount:posCount, ensHipo:ensHipo, personasDia:personasDia, ausentes:ausentes};
+  return {dUse:dUse, cnt:cnt, ensCount:ensCount, posCount:posCount, personasDia:personasDia, ausentes:ausentes};
 }
 
 // Página de CONTEO de un día (cantidades para cocina)
 function _diaConteoPagina(dk, solMes){
-  var X=_diaDatos(dk, solMes), dUse=X.dUse, cnt=X.cnt, ensCount=X.ensCount, posCount=X.posCount, ensHipo=X.ensHipo||0;
+  var X=_diaDatos(dk, solMes), dUse=X.dUse, cnt=X.cnt, ensCount=X.ensCount, posCount=X.posCount;
   var TL_l = esFormatoNuevo(menuMes)
     ? {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'}
     : {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
@@ -2821,7 +2788,6 @@ function _diaConteoPagina(dk, solMes){
   var fEns='';
   var ek=(dUse.ens&&dUse.ens.length)?dUse.ens:Object.keys(ensCount);
   ek.forEach(function(e){var n=ensCount[e]||0;fEns+='<tr'+(n===0?' class="z"':'')+'><td class="rt">Ensalada</td><td>'+e+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';});
-  if(ensHipo) fEns+='<tr class="z"><td class="rt"></td><td style="font-style:italic">('+ensHipo+' hipocalorico'+(ensHipo>1?'s':'')+' no suma'+(ensHipo>1?'n':'')+' ensalada: ya incluida)</td><td class="rn">&mdash;</td></tr>';
   var fPos='';
   var pk=(dUse.pos&&dUse.pos.length)?dUse.pos:Object.keys(posCount);
   pk.forEach(function(p){var n=posCount[p]||0;fPos+='<tr'+(n===0?' class="z"':'')+'><td class="rt">Postre</td><td>'+p+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';});
