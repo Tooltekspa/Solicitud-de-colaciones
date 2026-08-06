@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Tooltek · Colaciones</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -253,6 +256,17 @@ tr:hover td{background:rgba(34,113,179,.025)}
 .rc2-tot{border-top:2px solid #f5c518;background:#fff;padding:4px 0}
 .rc2-tot td{padding:5px 12px;border:none;font-size:.8rem}
 .rc2-tot td.col-num{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;color:var(--grn)}
+/* ── Barra de diagnóstico del conteo (para comparar PC vs teléfono) ── */
+.diagbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;
+  padding:8px 10px;border:1px solid var(--bor);border-radius:10px;background:var(--sur2);
+  font-size:.68rem;color:var(--mut);line-height:1.5}
+.diagbar b{color:var(--txt);font-weight:700}
+.diagbar .dg{display:inline-flex;align-items:center;gap:4px;background:var(--sur);
+  border:1px solid var(--bor);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.diagbar .dg.warn{background:#fff4e5;border-color:#f0c890;color:#8a5300}
+.diagbar .dg.bad{background:#fdecec;border-color:#f0b4b4;color:#9c2020}
+.diagbar .dg.good{background:#e9f7f1;border-color:#a8dcc6;color:#0f6d4c}
+.diagbar .huella{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.4px}
 /* ── CONTEO POR DÍA — estilo Excel ── */
 .rc3{background:var(--sur);border:1px solid #bbb;border-radius:4px;overflow:hidden;font-family:'DM Sans',sans-serif;font-size:.78rem;}
 .rc3 table{width:100%;border-collapse:collapse;}
@@ -469,7 +483,7 @@ footer span{color:var(--azul3)}
       </div>
       <div id="tblBody" style="overflow-x:auto"></div>
     </div>
-    <div id="resSection" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px"><div class="pill" style="margin-bottom:0">Conteo por dia</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="abtn ao" onclick="abrirSelectorDia('conteo')" style="font-size:.75rem">🖨 Imprimir un día</button><button class="abtn ap" onclick="imprimirTodos('conteo')" style="font-size:.75rem">🖨 Imprimir todos</button></div></div>
+    <div id="resSection" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px"><div class="pill" style="margin-bottom:0">Conteo por dia</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="abtn ag" onclick="recargarDatos()" style="font-size:.75rem">🔄 Recargar datos</button><button class="abtn ao" onclick="abrirSelectorDia('conteo')" style="font-size:.75rem">🖨 Imprimir un día</button><button class="abtn ap" onclick="imprimirTodos('conteo')" style="font-size:.75rem">🖨 Imprimir todos</button></div></div><div id="resDiag" class="diagbar"></div>
       <div class="res-grid" id="resGrid"></div>
     </div>
   </div>
@@ -703,6 +717,54 @@ function normalizarMes(mes) {
   if (isNaN(d.getTime())) return s.trim();
   return MESES_ES[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
 }
+// ══════════════════════════════════════════════════════
+//  CONTEO ROBUSTO — evita diferencias entre dispositivos
+//  Problema que resuelve: las filas del conteo se armaban SOLO con los
+//  textos del menú cargado en ese equipo. Si el menú local era distinto
+//  (o el texto del pedido tenía un acento/espacio diferente), esa ensalada
+//  o postre NO aparecía y su cantidad se perdía en silencio, aunque el
+//  total del pie sí la contaba. Ahora se agrupa con texto normalizado y
+//  los pedidos que no están en el menú se muestran igual, marcados con ⚠.
+// ══════════════════════════════════════════════════════
+function _nrmTxt(s){
+  return String(s==null?'':s).toUpperCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+}
+// Devuelve [{txt, n, extra}] uniendo la lista del menú con lo realmente pedido
+function _fusionarLista(listaMenu, contador){
+  var out=[], idx={};
+  (listaMenu||[]).forEach(function(item){
+    var k=_nrmTxt(item); if(!k || idx[k]!==undefined) return;
+    idx[k]=out.length; out.push({txt:item, n:0, extra:false});
+  });
+  Object.keys(contador||{}).forEach(function(pedido){
+    var k=_nrmTxt(pedido); if(!k) return;
+    if(idx[k]!==undefined){ out[idx[k]].n += contador[pedido]; }
+    else { idx[k]=out.length; out.push({txt:pedido, n:contador[pedido], extra:true}); }
+  });
+  return out;
+}
+
+// ── Trazabilidad de los datos (para comparar PC vs teléfono) ──
+var APP_VERSION = '2026.08.06';
+var DATA_SRC = {origen:'—', clase:'', hora:'—'};
+function marcarOrigen(origen, clase){
+  DATA_SRC.origen = origen;
+  DATA_SRC.clase  = clase || '';
+  DATA_SRC.hora   = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+// Huella de los datos: si dos equipos muestran la misma huella, están viendo
+// exactamente lo mismo. Si difiere, uno de los dos tiene datos desactualizados.
+function huellaDatos(solMes){
+  var pedidos=0, aus=0, ids=0;
+  (solMes||[]).forEach(function(p){
+    ids += 1;
+    (p.dias||[]).forEach(function(d){ if(d.ausente) aus++; else pedidos++; });
+  });
+  return {personas:ids, pedidos:pedidos, ausencias:aus,
+          txt: ids+'/'+pedidos+'/'+aus};
+}
+
 const TC = {A:'var(--azul2)',B:'var(--pur)',C:'var(--cian)',H:'var(--grn)',V:'var(--lim)',L:'var(--ora)'};
 const TB = {A:'bA',B:'bB',C:'bC',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
 
@@ -912,6 +974,7 @@ async function cargarSolicitudesRemotas() {
     const parsed = (data.solicitudes || []).filter(function(s){ return s && s.id; });
     solicitudes = parsed;
     saveSol();
+    marcarOrigen('☁️ Nube (Apps Script)','good');
     setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes cargadas');
   } catch(err) {
     // Fallback: intentar CSV de Sheets
@@ -929,12 +992,16 @@ async function cargarSolicitudesRemotas() {
       }).filter(Boolean);
       solicitudes = parsed;
       saveSol();
+    marcarOrigen('📄 Respaldo CSV de Sheets','warn');
       setSyncStatus('ok', '✅ ' + parsed.length + ' solicitudes (fallback)');
     } catch(err2) {
       // Último fallback: usar datos locales guardados en localStorage
       if (solicitudes.length) {
-        setSyncStatus('ok', '📱 ' + solicitudes.length + ' solicitudes (local)');
+        marcarOrigen('📱 Copia local — POSIBLE DESACTUALIZADA','bad');
+        setSyncStatus('err', '⚠️ ' + solicitudes.length + ' solicitudes (local, sin conexión)');
+        showToast('⚠️ No se pudo leer la nube. Estás viendo la última copia guardada en este dispositivo.', 7000);
       } else {
+        marcarOrigen('❌ Sin datos','bad');
         setSyncStatus('err', '❌ Sin conexión — ' + err.message);
       }
       console.warn('Solicitudes error:', err.message);
@@ -1130,6 +1197,7 @@ function iniciarPolling() {
         solicitudes = data.solicitudes;
         saveSol();
         renderAdmin();
+        marcarOrigen('☁️ Nube (Apps Script)','good');
         var nuevas = solicitudes.length - antes;
         if (nuevas > 0) showToast('\ud83d\udd14 ' + nuevas + ' solicitud' + (nuevas !== 1 ? 'es nuevas' : ' nueva'));
         seg = POLL_INTERVAL / 1000;
@@ -1140,6 +1208,29 @@ function iniciarPolling() {
 
   setSyncStatus('ok', '\u23f1 Actualiza en ' + seg + 's');
 }
+
+// Fuerza una relectura completa desde la nube (botón 🔄 del conteo)
+function recargarDatos(){
+  setSyncStatus('syncing', '🔄 Recargando...');
+  Promise.all([cargarSolicitudesRemotas(), cargarMenuRemoto()])
+    .then(function(){ renderAdmin(); showToast('✅ Datos recargados desde la nube'); });
+}
+
+// En el teléfono, el navegador congela los temporizadores cuando la pestaña
+// queda en segundo plano: al volver, los datos podían quedar viejos. Ahora se
+// refresca automáticamente al reactivar la pantalla.
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState !== 'visible') return;
+  var adm = document.getElementById('view-adm');
+  if (!adm || !adm.classList.contains('active')) return;
+  gasJSONP('obtener_solicitudes').then(function(data){
+    if (data.ok && Array.isArray(data.solicitudes)) {
+      data.solicitudes.forEach(function(s){ s.mes = normalizarMes(s.mes); });
+      solicitudes = data.solicitudes.filter(function(s){ return s && s.id; });
+      saveSol(); marcarOrigen('☁️ Nube (Apps Script)','good'); renderAdmin();
+    }
+  }).catch(function(){});
+});
 
 function detenerPolling() {
   if (_pollTimer)      { clearInterval(_pollTimer);      _pollTimer      = null; }
@@ -2159,8 +2250,28 @@ function renderTable(solMes) {
   }
 }
 
+// ── Barra de diagnóstico: permite comparar de un vistazo lo que muestra
+//    el computador y lo que muestra el teléfono. Si la HUELLA coincide en
+//    ambos, los números tienen que ser idénticos. ──
+function renderDiagBar(solMes){
+  var el=document.getElementById('resDiag');
+  if(!el) return;
+  var h=huellaDatos(solMes);
+  var menuOk = !!(MENUS[menuMes] && MENUS[menuMes].menu);
+  var partes=[];
+  partes.push('<span class="dg"><b>Mes:</b> '+(menuMes||'—')+'</span>');
+  partes.push('<span class="dg"><b>Huella:</b> <span class="huella">'+h.txt+'</span></span>');
+  partes.push('<span class="dg">'+h.personas+' personas · '+h.pedidos+' pedidos · '+h.ausencias+' ausencias</span>');
+  partes.push('<span class="dg '+(DATA_SRC.clase||'')+'"><b>Datos:</b> '+DATA_SRC.origen+' · '+DATA_SRC.hora+'</span>');
+  partes.push('<span class="dg '+(menuOk?'':'warn')+'"><b>Menú:</b> '+(menuOk?'cargado':'NO cargado en este equipo')+'</span>');
+  partes.push('<span class="dg">v'+APP_VERSION+'</span>');
+  el.innerHTML = partes.join('') +
+    '<span style="flex-basis:100%;font-size:.64rem;opacity:.8">Huella = personas / pedidos / ausencias. Debe ser la misma en el PC y en el teléfono; si no, el equipo con huella distinta tiene datos viejos → pulsa 🔄 Recargar datos.</span>';
+}
+
 function renderResumen(solMes) {
   const rs=document.getElementById('resSection'),rg=document.getElementById('resGrid');
+  renderDiagBar(solMes);
   if(!solMes.length){rs.style.display='none';return;}
   const diasKeys = DATES.length ? DATES : (function(){
     const dm={};
@@ -2212,11 +2323,10 @@ function renderResumen(solMes) {
 
     // ── Ensaladas: TODAS las del menú con 0 si no fue pedida ──
     var ensRows='';
-    var ensLista=(dUse.ens&&dUse.ens.length)?dUse.ens:Object.keys(ensCount);
-    ensLista.forEach(function(ens){
-      var n=ensCount[ens]||0;
-      var zero=n===0?' style="color:#bbb"':'';
-      ensRows+='<tr'+zero+'><td class="rtipo">Ensalada</td><td class="rdesc">'+ens+'</td><td class="rnum">'+n+'</td></tr>';
+    _fusionarLista(dUse.ens, ensCount).forEach(function(x){
+      var zero=x.n===0?' style="color:#bbb"':'';
+      var mark=x.extra?' <span style="color:var(--ora);font-weight:800" title="Pedida con un texto que no coincide con el menú cargado en este equipo">&#9888;</span>':'';
+      ensRows+='<tr'+zero+'><td class="rtipo">Ensalada</td><td class="rdesc">'+x.txt+mark+'</td><td class="rnum">'+x.n+'</td></tr>';
     });
 
     // ── Almuerzos: TODOS los del menú con 0 si no fue pedido ──
@@ -2232,11 +2342,10 @@ function renderResumen(solMes) {
 
     // ── Postres: TODOS los del menú con 0 si no fue pedido ──
     var posRows='';
-    var posLista=(dUse.pos&&dUse.pos.length)?dUse.pos:Object.keys(posCount);
-    posLista.forEach(function(pos){
-      var n=posCount[pos]||0;
-      var zero=n===0?' style="color:#bbb"':'';
-      posRows+='<tr'+zero+'><td class="rtipo">Postres</td><td class="rdesc">'+pos+'</td><td class="rnum">'+n+'</td></tr>';
+    _fusionarLista(dUse.pos, posCount).forEach(function(x){
+      var zero=x.n===0?' style="color:#bbb"':'';
+      var mark=x.extra?' <span style="color:var(--ora);font-weight:800" title="Pedido con un texto que no coincide con el menú cargado en este equipo">&#9888;</span>':'';
+      posRows+='<tr'+zero+'><td class="rtipo">Postres</td><td class="rdesc">'+x.txt+mark+'</td><td class="rnum">'+x.n+'</td></tr>';
     });
 
     // ── Ausencia ──
@@ -2786,11 +2895,11 @@ function _diaConteoPagina(dk, solMes){
     fMen+='<tr'+(t==='H'&&n?' class="rh"':'')+(n===0?' class="z"':'')+'><td class="rt">'+TL_l[t]+'</td><td>'+desc+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';
   });
   var fEns='';
-  var ek=(dUse.ens&&dUse.ens.length)?dUse.ens:Object.keys(ensCount);
-  ek.forEach(function(e){var n=ensCount[e]||0;fEns+='<tr'+(n===0?' class="z"':'')+'><td class="rt">Ensalada</td><td>'+e+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';});
+  _fusionarLista(dUse.ens, ensCount).forEach(function(x){
+    fEns+='<tr'+(x.n===0?' class="z"':'')+'><td class="rt">Ensalada</td><td>'+x.txt+(x.extra?' (*)':'')+'</td><td class="rn">'+(x.n||'&mdash;')+'</td></tr>';});
   var fPos='';
-  var pk=(dUse.pos&&dUse.pos.length)?dUse.pos:Object.keys(posCount);
-  pk.forEach(function(p){var n=posCount[p]||0;fPos+='<tr'+(n===0?' class="z"':'')+'><td class="rt">Postre</td><td>'+p+'</td><td class="rn">'+(n||'&mdash;')+'</td></tr>';});
+  _fusionarLista(dUse.pos, posCount).forEach(function(x){
+    fPos+='<tr'+(x.n===0?' class="z"':'')+'><td class="rt">Postre</td><td>'+x.txt+(x.extra?' (*)':'')+'</td><td class="rn">'+(x.n||'&mdash;')+'</td></tr>';});
   var ausR=cnt.AUS?'<tr class="z"><td class="rt">Ausencias</td><td>No asiste</td><td class="rn">'+cnt.AUS+'</td></tr>':'';
   return '<div class="pagina">'+
     '<h1>Conteo - '+dUse.full+'</h1>'+
