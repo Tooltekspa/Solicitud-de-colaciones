@@ -557,6 +557,25 @@ function mesKeyNum(mes){
   return (mi < 0 && !y) ? 0 : y*100 + (mi+1);
 }
 
+// Ordena claves DD/MM tomando como referencia el mes del menú.
+// Necesario porque una minuta puede incluir días del mes anterior o siguiente
+// (ej: la Semana 1 de Septiembre parte el lunes 31/08). Un sort de texto
+// dejaría "31/08" al final, después de "30/09".
+function ordenarDks(dks, mesRef){
+  var mRef = mesKeyNum(mesRef) % 100;   // 1..12, o 0 si no se pudo deducir
+  function ord(dk){
+    var m = String(dk).match(/(\d{1,2})\/(\d{1,2})/);
+    if (!m) return 0;
+    var dd = parseInt(m[1],10), mm = parseInt(m[2],10);
+    if (!mRef) return mm*100 + dd;      // sin referencia: orden natural
+    var diff = mm - mRef;               // distancia en meses al mes del menú
+    if (diff >  6) diff -= 12;          // dic → ene del año siguiente
+    if (diff < -6) diff += 12;          // ene → dic del año anterior
+    return diff*100 + dd;
+  }
+  return dks.slice().sort(function(a,b){ return ord(a) - ord(b); });
+}
+
 // DD/MM → número comparable (MM*100+DD). Sirve para ordenar/comparar fechas.
 function dkNum(dk){
   var m = String(dk).match(/(\d{1,2})\/(\d{1,2})/);
@@ -862,10 +881,11 @@ async function cargarMenuRemoto() {
   menuLoaded = true; checkStart();
 }
 
-function validarDias(menuObj) {
-  return Object.keys(menuObj || {}).filter(dk => {
+function validarDias(menuObj, mesRef) {
+  const dks = Object.keys(menuObj || {}).filter(dk => {
     const d = menuObj[dk]; return !d.feriado && d.A && d.B;
-  }).sort();
+  });
+  return ordenarDks(dks, mesRef);
 }
 
 function aplicarMenu(data) {
@@ -876,7 +896,7 @@ function aplicarMenu(data) {
     Object.keys(data.menus).forEach(function(mes){
       const entry = data.menus[mes];
       if (!entry || !entry.menu) return;
-      const valid = entry.dates && entry.dates.length ? entry.dates : validarDias(entry.menu);
+      const valid = entry.dates && entry.dates.length ? ordenarDks(entry.dates, mes) : validarDias(entry.menu, mes);
       if (valid.length) nuevos[mes] = {menu: entry.menu, dates: valid};
     });
     if (!Object.keys(nuevos).length) return false;
@@ -889,9 +909,9 @@ function aplicarMenu(data) {
   }
   // Formato v1 (un solo mes): {menu, dates, mes}
   if (data.menu) {
-    const valid = validarDias(data.menu);
-    if (!valid.length) return false;
     const mes = data.mes || menuMes || 'Menú';
+    const valid = validarDias(data.menu, mes);
+    if (!valid.length) return false;
     MENUS[mes] = {menu: data.menu, dates: valid};
     if (!MES_ACTIVO) MES_ACTIVO = mes;
     return activarMesLocal(elegirMesInicial());
@@ -1530,8 +1550,29 @@ function parseMinutaSemanal(wb) {
     return null;
   }
 
+  // ── Mes del título: "MINUTA SEPTIEMBRE 2026" ──────────
+  // Es la fuente más confiable. Solo se leen filas que digan MINUTA, para no
+  // confundirse con "SEMANA DEL 31-08 HASTA EL 06 DE SEPTIEMBRE".
+  function mesDesdeTitulo() {
+    for (const sn of wb.SheetNames) {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: null });
+      for (let i = 0; i < Math.min(6, (rows || []).length); i++) {
+        const t = norm((rows[i] || []).map(clean).join(' '));
+        if (t.indexOf('MINUTA') < 0) continue;
+        for (let mi = 1; mi <= 12; mi++) {
+          if (t.indexOf(norm(MONTH_NAMES[mi])) >= 0) {
+            const y = t.match(/(20\d{2})/);
+            return { mi: mi, y: y ? parseInt(y[1], 10) : 0 };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   const newMenu = {};
   let menuMesLocal = '';
+  const votos = {};   // "AAAAMM" → cuántos días de la minuta caen en ese mes
 
   for (const sn of wb.SheetNames) {
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: null });
@@ -1571,7 +1612,12 @@ function parseMinutaSemanal(wb) {
       const dd = String(dt.getUTCDate()).padStart(2, '0');
       const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
       const dk = dd + '/' + mm;
-      if (!menuMesLocal) menuMesLocal = MONTH_NAMES[dt.getUTCMonth() + 1] + ' ' + dt.getUTCFullYear();
+      // Voto de este día para decidir a qué mes pertenece la minuta completa.
+      // ANTES: se tomaba el mes del PRIMER día encontrado. Como la Semana 1
+      // suele arrancar el lunes del mes anterior (31/08 para Septiembre), la
+      // minuta entera quedaba etiquetada con el mes equivocado.
+      var kMes = dt.getUTCFullYear() * 100 + (dt.getUTCMonth() + 1);
+      votos[kMes] = (votos[kMes] || 0) + 1;
       if (!newMenu[dk]) {
         newMenu[dk] = {
           label: dc.dow + ' ' + dd,
@@ -1617,7 +1663,34 @@ function parseMinutaSemanal(wb) {
   // Días sin Plato A → feriado (los excluye validarDias)
   Object.keys(newMenu).forEach(dk => { if (!newMenu[dk].A) newMenu[dk].feriado = true; });
 
-  return { menu: newMenu, mes: menuMesLocal };
+  // ── Decidir el mes de la minuta ───────────────────────
+  // 1º el título ("MINUTA SEPTIEMBRE 2026"), 2º el mes con más días.
+  const claves = Object.keys(votos).map(Number).sort(function(a,b){ return votos[b]-votos[a] || b-a; });
+  const mayoria = claves.length ? claves[0] : 0;
+  let mesNum = mayoria, fuente = 'fechas de la minuta';
+
+  const tit = mesDesdeTitulo();
+  if (tit) {
+    const anio = tit.y || (mayoria ? Math.floor(mayoria / 100) : new Date().getFullYear());
+    const kTit = anio * 100 + tit.mi;
+    // Solo se hace caso al título si de verdad hay días de ese mes en el archivo
+    if (votos[kTit]) { mesNum = kTit; fuente = 'título del archivo'; }
+  }
+
+  if (mesNum) menuMesLocal = MONTH_NAMES[mesNum % 100] + ' ' + Math.floor(mesNum / 100);
+
+  // La minuta se arma por SEMANAS COMPLETAS (lunes a domingo), así que la
+  // primera y la última semana normalmente incluyen días del mes vecino
+  // (ej: el lunes 31/08 es el primer día de la semana 1 de Septiembre).
+  // Es el comportamiento esperado: se informan, no se marcan como problema.
+  const mesMM = mesNum % 100;
+  const diasVecinos = Object.keys(newMenu).filter(function(dk){
+    var m = dk.match(/\d{1,2}\/(\d{1,2})/);
+    return m && parseInt(m[1], 10) !== mesMM;
+  });
+
+  return { menu: newMenu, mes: menuMesLocal, fuenteMes: fuente, diasVecinos: diasVecinos,
+           reparto: claves.map(function(k){ return MONTH_NAMES[k%100] + ' ' + Math.floor(k/100) + ': ' + votos[k] + ' días'; }) };
 }
 
 // ── PARSER CLÁSICO (formato anterior) ───────────────────
@@ -1843,11 +1916,29 @@ function loadExcel(e) {
     try {
       const wb=XLSX.read(ev.target.result,{type:'array'});
       const parsed=parseMenuExcel(wb);
-      const valid=Object.keys(parsed.menu).filter(dk=>{const d=parsed.menu[dk];return !d.feriado&&d.A&&d.B;}).sort();
-      if(!valid.length){showToast('⚠️ No se encontraron días hábiles');return;}
       const mesNuevo = parsed.mes||f.name.replace(/\.xlsx?/i,'');
+      const valid = ordenarDks(
+        Object.keys(parsed.menu).filter(dk=>{const d=parsed.menu[dk];return !d.feriado&&d.A&&d.B;}),
+        mesNuevo);
+      if(!valid.length){showToast('⚠️ No se encontraron días hábiles');return;}
+
+      // Aviso claro de QUÉ mes se detectó y de dónde salió, para que un archivo
+      // cuya primera semana arranca en el mes anterior no se cargue como ese mes.
+      var det = '📅 Mes detectado: ' + mesNuevo +
+                (parsed.fuenteMes ? '  (según ' + parsed.fuenteMes + ')' : '') +
+                '\nArchivo: ' + f.name +
+                '\nDías hábiles: ' + valid.length + '  (' + valid[0] + ' → ' + valid[valid.length-1] + ')' +
+                (parsed.reparto && parsed.reparto.length>1 ? '\nLa minuta incluye: ' + parsed.reparto.join('  ·  ') : '');
+      // Semanas completas: la primera y la última suelen traer días del mes
+      // vecino. Se informa como dato, sin pedir confirmación extra.
+      if (parsed.diasVecinos && parsed.diasVecinos.length) {
+        det += '\nSemanas completas: incluye ' + ordenarDks(parsed.diasVecinos, mesNuevo).join(', ') +
+               ' del mes vecino.';
+      }
+
       // Multi-menú: solo se reemplaza ESE mes; los demás meses cargados se conservan
-      if (MENUS[mesNuevo] && !confirm('Ya existe un menú para '+mesNuevo+'. ¿Reemplazarlo? (Los otros meses no se tocan)')) return;
+      if (MENUS[mesNuevo] &&
+          !confirm(det + '\n\nYa existe un menú para ' + mesNuevo + '. ¿Reemplazarlo?\n(Los otros meses no se tocan)')) return;
       MENUS[mesNuevo] = {menu: parsed.menu, dates: valid};
       if (!MES_ACTIVO || !MENUS[MES_ACTIVO]) MES_ACTIVO = mesNuevo;
       activarMesLocal(mesNuevo);
@@ -1878,7 +1969,9 @@ function renderMenuPreview() {
   for(const dk of DATES){const d=MENU[dk];if(!semanas[d.semana])semanas[d.semana]=[];semanas[d.semana].push(dk);}
   let html=`<div class="menu-prev"><div class="mphead"><h3>📋 Vista previa — ${menuMes}</h3><span>${DATES.length} días hábiles</span></div>`;
   for(const [sem,dks] of Object.entries(semanas)){
-    html+=`<div class="mpweek-title">${sem}</div><div class="mpdays">`;
+    // Como la minuta se pide por semana, se muestra el rango real de cada una
+    const rango = dks.length ? ` — ${dks[0]} a ${dks[dks.length-1]} · ${dks.length} día${dks.length!==1?'s':''}` : '';
+    html+=`<div class="mpweek-title">${sem}${rango}</div><div class="mpdays">`;
     for(const dk of dks){
       const d=MENU[dk];
       html+=`<div class="mpday"><div class="mpday-lbl">${d.label}</div><div class="mprow"><strong>A:</strong> ${(d.A||'').substring(0,35)}…</div><div class="mprow"><strong>B:</strong> ${(d.B||'').substring(0,35)}…</div><div class="mprow"><strong>C:</strong> ${(d.C||'').substring(0,35)}…</div><div class="mprow"><strong>H:</strong> ${(d.H||'').substring(0,33)}…</div></div>`;
