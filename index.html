@@ -823,6 +823,42 @@ function saveSol() { localStorage.setItem('tt_sol', JSON.stringify(solicitudes))
 function saveMenu() { localStorage.setItem('tt_menus', JSON.stringify({menus:MENUS, activo:MES_ACTIVO})); }
 
 // Copia un mes desde MENUS a las variables "activas" (MENU/DATES/menuMes)
+// ══════════════════════════════════════════════════════
+//  SOLAPE ENTRE MESES
+//  La minuta se arma por semanas completas, así que un día puede aparecer
+//  en dos archivos distintos (ej: 31/08 en el de Agosto y en el de Septiembre).
+//  Si eso pasa, la misma persona podría pedir ese día dos veces y el conteo
+//  quedaría partido entre las dos pestañas de mes. Esto lo detecta.
+// ══════════════════════════════════════════════════════
+function diasSolapados(){
+  var porDia = {};   // "31/08" → ["Agosto 2026","Septiembre 2026"]
+  Object.keys(MENUS).forEach(function(m){
+    var ds = (MENUS[m] && MENUS[m].dates) || [];
+    ds.forEach(function(dk){ (porDia[dk] = porDia[dk] || []).push(m); });
+  });
+  var out = [];
+  Object.keys(porDia).forEach(function(dk){
+    if (porDia[dk].length > 1) out.push({ dk: dk, meses: porDia[dk].slice().sort(function(a,b){ return mesKeyNum(a)-mesKeyNum(b); }) });
+  });
+  return out.sort(function(a,b){ return dkNum(a.dk) - dkNum(b.dk); });
+}
+
+// ¿Esta persona ya pidió alguno de estos días en OTRO mes?
+function pedidosCruzados(nombre, email, mesActual, dks){
+  var set = {}; (dks||[]).forEach(function(dk){ set[dk] = 1; });
+  var n = String(nombre||'').trim().toLowerCase(), e = String(email||'').trim().toLowerCase();
+  var hits = [];
+  solicitudes.forEach(function(s){
+    if (!s || s.mes === mesActual) return;
+    var mismo = (s.email && s.email.toLowerCase() === e) || (s.nombre && s.nombre.toLowerCase() === n);
+    if (!mismo) return;
+    (s.dias||[]).forEach(function(d){
+      if (d && !d.ausente && set[d.fecha]) hits.push({ dk: d.fecha, mes: s.mes });
+    });
+  });
+  return hits;
+}
+
 function activarMesLocal(mes) {
   if (!mes || !MENUS[mes]) return false;
   menuMes = mes;
@@ -1282,6 +1318,23 @@ function startSlides() {
     (s.email.toLowerCase() === email.toLowerCase() ||
      s.nombre.toLowerCase() === nombre.toLowerCase())
   );
+  // Semanas compartidas: un día puede existir en dos meses. Si esta persona ya
+  // pidió alguno de los días visibles dentro de OTRO mes, se avisa para que no
+  // se registre dos veces la misma colación.
+  var cruz = pedidosCruzados(nombre, email, menuMes, VISIBLE_DATES);
+  if (!yaExiste && cruz.length) {
+    var w2 = document.getElementById('dupWarn');
+    if (!w2) {
+      w2 = document.createElement('div');
+      w2.id = 'dupWarn';
+      w2.style.cssText = 'background:rgba(217,64,64,.07);border:1.5px solid rgba(217,64,64,.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:var(--red);line-height:1.6;text-align:left';
+      document.getElementById('btnStart').parentNode.insertBefore(w2, document.getElementById('btnStart'));
+    }
+    var listado = cruz.map(function(h){ return h.dk + ' (en ' + h.mes + ')'; }).join(', ');
+    w2.style.display = 'block';
+    w2.innerHTML = '⚠️ <strong>' + nombre + '</strong> ya pidió estos días en otro mes: <strong>' + listado +
+      '</strong>.<br>Al continuar, salta esos días o contacta al administrador para no duplicar la colación.';
+  }
   if (yaExiste) {
     let warn = document.getElementById('dupWarn');
     if (!warn) {
@@ -1936,6 +1989,20 @@ function loadExcel(e) {
                ' del mes vecino.';
       }
 
+      // ¿Alguno de estos días ya está en OTRO mes cargado? (semanas compartidas)
+      var choque = [];
+      Object.keys(MENUS).forEach(function(m){
+        if (m === mesNuevo) return;
+        var ds = (MENUS[m] && MENUS[m].dates) || [];
+        ds.forEach(function(dk){ if (valid.indexOf(dk) >= 0) choque.push(dk + ' (también en ' + m + ')'); });
+      });
+      if (choque.length) {
+        det += '\n\n⚠️ ATENCIÓN — días repetidos en dos meses:\n' + choque.join('\n') +
+               '\n\nEsos días quedarían disponibles en ambos meses y la misma persona podría pedirlos dos veces.' +
+               '\nLo recomendable es dejar cada día en un solo mes.';
+        if (!confirm(det + '\n\n¿Cargar igual?')) return;
+      }
+
       // Multi-menú: solo se reemplaza ESE mes; los demás meses cargados se conservan
       if (MENUS[mesNuevo] &&
           !confirm(det + '\n\nYa existe un menú para ' + mesNuevo + '. ¿Reemplazarlo?\n(Los otros meses no se tocan)')) return;
@@ -2357,6 +2424,12 @@ function renderDiagBar(solMes){
   partes.push('<span class="dg">'+h.personas+' personas · '+h.pedidos+' pedidos · '+h.ausencias+' ausencias</span>');
   partes.push('<span class="dg '+(DATA_SRC.clase||'')+'"><b>Datos:</b> '+DATA_SRC.origen+' · '+DATA_SRC.hora+'</span>');
   partes.push('<span class="dg '+(menuOk?'':'warn')+'"><b>Menú:</b> '+(menuOk?'cargado':'NO cargado en este equipo')+'</span>');
+  // Aviso persistente si hay días que viven en dos meses a la vez
+  var sol = diasSolapados();
+  if (sol.length) {
+    partes.push('<span class="dg bad"><b>⚠️ Días en 2 meses:</b> ' +
+      sol.map(function(x){ return x.dk + ' (' + x.meses.join(' + ') + ')'; }).join(' · ') + '</span>');
+  }
   partes.push('<span class="dg">v'+APP_VERSION+'</span>');
   el.innerHTML = partes.join('') +
     '<span style="flex-basis:100%;font-size:.64rem;opacity:.8">Huella = personas / pedidos / ausencias. Debe ser la misma en el PC y en el teléfono; si no, el equipo con huella distinta tiene datos viejos → pulsa 🔄 Recargar datos.</span>';
