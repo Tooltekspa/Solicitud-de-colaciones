@@ -1011,17 +1011,17 @@
             "LECHUGA ESCAROLA, TOMATE, CHOCLO ADEREZO MAYO PEREJIL",
             "PAPA MAYO Y SAL"
           ],
-          "A": "LASAÑA BOLOGNESA CARNE",
-          "B": "POLLO A LA CHILENA CHIMICHURRI PAPAS RÚSTICAS",
+          "A": "",
+          "B": "",
           "C": "2 EMPANADAS VEGANA CON PEBRE",
-          "H": "ENSALADA CARLEANA",
+          "H": "",
           "V": "2 EMPANADAS DE PINO CON PEBRE",
           "L": "BAGUETTE DIECIOCHERO",
           "pos": [
             "MOTE CON HUESILLO",
-            "FRUTA ENTERA",
-            "JALEA",
-            "FLAN"
+            "",
+            "",
+            ""
           ],
           "feriado": false
         },
