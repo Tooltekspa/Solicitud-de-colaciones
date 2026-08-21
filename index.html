@@ -173,6 +173,7 @@ header{position:sticky;top:0;z-index:200;background:var(--azul);border-bottom:3p
 .bA{background:rgba(34,113,179,.12);color:var(--azul)}.bB{background:rgba(91,106,191,.12);color:var(--pur)}
 .bH{background:rgba(27,158,110,.12);color:var(--grn)}.bV{background:rgba(90,138,26,.12);color:var(--lim)}
 .bL{background:rgba(232,140,48,.12);color:var(--ora)}.bC{background:rgba(14,138,168,.12);color:var(--cian)}.bAus{background:rgba(217,64,64,.1);color:var(--red)}
+.bEsp{background:rgba(201,154,0,.14);color:#8a6d00}
 .btn-edit{font-size:.69rem;color:var(--mut);background:none;border:none;cursor:pointer;font-weight:600;transition:color .14s}
 .btn-edit:hover{color:var(--azul2)}
 .rday-body{padding:11px 17px;font-size:.8rem;color:var(--mut);line-height:1.8}
@@ -710,14 +711,14 @@ function fmtFechaDMY(v){
 // Clave de ordenamiento por área (los sin área quedan al final)
 function areaKey(p){ return (String(p.area||'').trim()) || '\uffff'; }
 
-const TL = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Alt. adicional',L:'Liviano',AUS:'Ausencia'};
+const TL = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Alt. adicional',L:'Liviano',AUS:'Ausencia',ESP:'Especial'};
 // ── Etiquetas según el mes ──────────────────────────────
 // Julio 2026 y meses anteriores conservan el formato antiguo (V = "Vegetariano",
 // sin nota en Plato C). Desde Agosto 2026 rige el nuevo (V = "Alt. adicional",
 // Plato C = Alt.3 "sin insumo animal").
 const FORMATO_NUEVO_DESDE = 202608; // Agosto 2026
 function esFormatoNuevo(mes){ return mesKeyNum(mes) >= FORMATO_NUEVO_DESDE; }
-const TL_OLD = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia'};
+const TL_OLD = {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalórico',V:'Vegetariano',L:'Liviano',AUS:'Ausencia',ESP:'Especial'};
 function tlMes(tipo, mes){ return esFormatoNuevo(mes) ? (TL[tipo]||tipo) : (TL_OLD[tipo]||TL[tipo]||tipo); }
 function notaSinInsumo(tipo, mes){
   return (tipo==='C' && esFormatoNuevo(mes))
@@ -784,8 +785,8 @@ function huellaDatos(solMes){
           txt: ids+'/'+pedidos+'/'+aus};
 }
 
-const TC = {A:'var(--azul2)',B:'var(--pur)',C:'var(--cian)',H:'var(--grn)',V:'var(--lim)',L:'var(--ora)'};
-const TB = {A:'bA',B:'bB',C:'bC',H:'bH',V:'bV',L:'bL',AUS:'bAus'};
+const TC = {A:'var(--azul2)',B:'var(--pur)',C:'var(--cian)',H:'var(--grn)',V:'var(--lim)',L:'var(--ora)',ESP:'#c99a00'};
+const TB = {A:'bA',B:'bB',C:'bC',H:'bH',V:'bV',L:'bL',AUS:'bAus',ESP:'bEsp'};
 
 // ══════════════════════════════════════════════════════
 //  STORAGE
@@ -919,7 +920,10 @@ async function cargarMenuRemoto() {
 
 function validarDias(menuObj, mesRef) {
   const dks = Object.keys(menuObj || {}).filter(dk => {
-    const d = menuObj[dk]; return !d.feriado && d.A && d.B;
+    const d = menuObj[dk];
+    if (d.feriado) return false;
+    if (d.especial) return true; // día con mensaje especial: se muestra aunque no tenga Plato A/B
+    return d.A && d.B;
   });
   return ordenarDks(dks, mesRef);
 }
@@ -1367,6 +1371,23 @@ function renderSlide(dir='fwd') {
   });
   document.getElementById('slideCounter').textContent = (curIdx+1) + ' de ' + VISIBLE_DATES.length;
   document.getElementById('btnBack').textContent = curIdx===0 ? '← Datos' : '← Atrás';
+  if (d.especial) {
+    _tmp = {tipo:'ESP', ens:null, pos:null};
+    document.getElementById('slideContent').innerHTML = `
+      <div class="scard ${dir==='back'?'back':''}">
+        <div class="shead"><div class="sdate">${d.full}</div><div class="sweek">${d.semana}</div></div>
+        <div class="sbody">
+          <div class="ssec">
+            <div class="ssec-title">📢 Día especial</div>
+            <div style="background:var(--bg2);border:1.5px solid var(--pale);border-radius:12px;padding:16px 18px;font-size:.86rem;color:var(--txt);line-height:1.65;white-space:pre-wrap">${esc(d.especial)}</div>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById('btnNext').disabled = false;
+    guardarProgreso();
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
   if (saved && !saved.ausente) _tmp = {tipo:saved.tipo, ens:saved.ens||null, pos:saved.pos||null};
   else _tmp = {tipo:null,ens:null,pos:null};
   const selT=_tmp.tipo, selE=_tmp.ens||'', selP=_tmp.pos||'';
@@ -1427,6 +1448,12 @@ function updateNextBtn() {
 
 function saveSlide() {
   if (!_tmp.tipo) return false;
+  if (_tmp.tipo === 'ESP') {
+    choices[VISIBLE_DATES[curIdx]] = {tipo:'ESP', ens:'', pos:''};
+    _tmp = {tipo:null,ens:null,pos:null};
+    guardarProgreso();
+    return true;
+  }
   var _ensSave = (_tmp.tipo==='H' && !esFormatoNuevo(menuMes)) ? '' : (_tmp.ens||'');
   choices[VISIBLE_DATES[curIdx]] = {tipo:_tmp.tipo, ens:_ensSave, pos:_tmp.pos||''};
   _tmp = {tipo:null,ens:null,pos:null};
@@ -1466,6 +1493,8 @@ function buildResumen() {
     const fm = {A:d.A,B:d.B,C:d.C,H:d.H,V:d.V,L:d.L};
     if (!c) {
       div.innerHTML=`<div class="rday-head"><div class="rdc">${d.label} <span style="font-weight:400;font-size:.73rem;color:var(--mut)">${d.full}</span></div><div class="rdd"><button class="btn-edit" onclick="editDay(${i})">+ Agregar</button></div></div>`;
+    } else if (c.tipo === 'ESP') {
+      div.innerHTML=`<div class="rday-head"><div class="rdc">${d.label} <span style="font-weight:400;font-size:.73rem;color:var(--mut)">${d.full}</span></div><div class="rdd"><span class="badge bEsp">Especial</span><button class="btn-edit" onclick="editDay(${i})">editar</button></div></div><div class="rday-body">📢 ${esc(d.especial||'')}</div>`;
     } else if (c.ausente) {
       div.innerHTML=`<div class="rday-head"><div class="rdc">${d.label}</div><div class="rdd"><span class="badge bAus">Ausencia</span><button class="btn-edit" onclick="editDay(${i})">editar</button></div></div>`;
     } else {
@@ -1479,7 +1508,7 @@ function buildResumen() {
 function editDay(i) {
   curIdx = i;
   const c = choices[VISIBLE_DATES[i]];
-  _tmp = (c && !c.ausente) ? {tipo:c.tipo,ens:c.ens,pos:c.pos} : {tipo:null,ens:null,pos:null};
+  _tmp = (c && !c.ausente && c.tipo!=='ESP') ? {tipo:c.tipo,ens:c.ens,pos:c.pos} : {tipo:null,ens:null,pos:null};
   showStep('step-slides'); renderSlide('fwd');
 }
 
@@ -1495,6 +1524,7 @@ async function submitFinal() {
     if (!c) return null;
     const fm = {A:d.A,B:d.B,C:d.C,H:d.H,V:d.V,L:d.L};
     if (c.ausente) return {fecha:dk,fechaLabel:d.label,fechaFull:d.full,tipo:'AUS',ausente:true,ens:'',pos:'',fondo:'Ausencia'};
+    if (c.tipo === 'ESP') return {fecha:dk,fechaLabel:d.label,fechaFull:d.full,tipo:'ESP',ausente:false,ens:'',pos:'',fondo:d.especial||'Especial'};
     return {fecha:dk,fechaLabel:d.label,fechaFull:d.full,tipo:c.tipo,ausente:false,ens:c.ens||'',pos:c.pos||'',fondo:fm[c.tipo]||''};
   }).filter(Boolean);
   const selDias = dias.filter(d=>!d.ausente).length;
@@ -2032,8 +2062,11 @@ function dropFile(e) {
 
 function renderMenuPreview() {
   const el=document.getElementById('menuPreview'); if(!el) return;
+  // DATES ya excluye los días marcados como feriado; para poder mostrarlos
+  // aquí (y reactivarlos) se recorre TODO el menú del mes, no solo DATES.
+  const todasFechas = Object.keys(MENU).sort(function(a,b){ return dkNum(a)-dkNum(b); });
   const semanas={};
-  for(const dk of DATES){const d=MENU[dk];if(!semanas[d.semana])semanas[d.semana]=[];semanas[d.semana].push(dk);}
+  for(const dk of todasFechas){const d=MENU[dk];const sk=d.semana||'—';if(!semanas[sk])semanas[sk]=[];semanas[sk].push(dk);}
   let html=`<div class="menu-prev"><div class="mphead"><h3>📋 Vista previa — ${menuMes}</h3><span>${DATES.length} días hábiles</span></div>`;
   for(const [sem,dks] of Object.entries(semanas)){
     // Como la minuta se pide por semana, se muestra el rango real de cada una
@@ -2041,12 +2074,58 @@ function renderMenuPreview() {
     html+=`<div class="mpweek-title">${sem}${rango}</div><div class="mpdays">`;
     for(const dk of dks){
       const d=MENU[dk];
-      html+=`<div class="mpday"><div class="mpday-lbl">${d.label}</div><div class="mprow"><strong>A:</strong> ${(d.A||'').substring(0,35)}…</div><div class="mprow"><strong>B:</strong> ${(d.B||'').substring(0,35)}…</div><div class="mprow"><strong>C:</strong> ${(d.C||'').substring(0,35)}…</div><div class="mprow"><strong>H:</strong> ${(d.H||'').substring(0,33)}…</div></div>`;
+      const oculto = !!d.feriado;
+      const esp = d.especial ? `<div class="mprow" style="color:#8a6d00;font-weight:700;margin-bottom:4px">📢 ${esc((d.especial||'').substring(0,60))}${(d.especial||'').length>60?'…':''}</div>` : '';
+      html+=`<div class="mpday" style="${oculto?'opacity:.5':''}">
+        <div class="mpday-lbl">${d.label}${oculto?' <span style="color:var(--red);font-size:.62rem;font-weight:700">· OCULTO</span>':''}</div>
+        ${esp}
+        <div class="mprow"><strong>A:</strong> ${(d.A||'').substring(0,35)}…</div>
+        <div class="mprow"><strong>B:</strong> ${(d.B||'').substring(0,35)}…</div>
+        <div class="mprow"><strong>C:</strong> ${(d.C||'').substring(0,35)}…</div>
+        <div class="mprow"><strong>H:</strong> ${(d.H||'').substring(0,33)}…</div>
+        <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+          <button class="abtn ao" style="font-size:.6rem;padding:4px 7px" onclick="toggleFeriadoDia('${dk}')">${oculto?'✅ Reactivar':'🚫 Ocultar día'}</button>
+          <button class="abtn ao" style="font-size:.6rem;padding:4px 7px" onclick="editarEspecialDia('${dk}')">${d.especial?'✎ Editar mensaje':'✉️ Día especial'}</button>
+        </div>
+      </div>`;
     }
     html+=`</div>`;
   }
   html+=`</div>`;
   el.innerHTML=html; el.style.display='block';
+}
+
+// Oculta o reactiva un día completo para los empleados (equivalente a "FERIADO").
+// El día deja de aparecer en la selección; no requiere Plato A/B ni mensaje.
+function toggleFeriadoDia(dk) {
+  const d = MENU[dk]; if (!d) return;
+  d.feriado = !d.feriado;
+  DATES = validarDias(MENU, menuMes);
+  if (MENUS[menuMes]) MENUS[menuMes] = {menu: MENU, dates: DATES};
+  computeVisibleDates();
+  saveMenu();
+  renderMenuPreview();
+  renderAdmin();
+  showToast(d.feriado ? ('🚫 ' + (d.label||dk) + ' oculto — los empleados ya no lo verán') : ('✅ ' + (d.label||dk) + ' reactivado'));
+  guardarMenuRemoto();
+}
+
+// Define (o quita) un mensaje especial para un día: reemplaza el selector de
+// platos normal por ese texto, y el empleado solo confirma para avanzar.
+function editarEspecialDia(dk) {
+  const d = MENU[dk]; if (!d) return;
+  const actual = d.especial || '';
+  const txt = prompt('Mensaje especial para ' + (d.full||dk) + ':\n\n(Este texto reemplaza la selección normal de menú para ese día — el empleado solo lo confirma. Déjalo vacío para quitarlo.)', actual);
+  if (txt === null) return; // canceló
+  d.especial = txt.trim();
+  DATES = validarDias(MENU, menuMes);
+  if (MENUS[menuMes]) MENUS[menuMes] = {menu: MENU, dates: DATES};
+  computeVisibleDates();
+  saveMenu();
+  renderMenuPreview();
+  renderAdmin();
+  showToast(d.especial ? ('📢 Mensaje especial guardado para ' + (d.label||dk)) : ('✉️ Mensaje especial quitado de ' + (d.label||dk)));
+  guardarMenuRemoto();
 }
 
 // ══════════════════════════════════════════════════════
@@ -2466,7 +2545,7 @@ function renderResumen(solMes) {
     }
 
     // Contadores por tipo de plato
-    const cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0};
+    const cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0,ESP:0};
     // Ensaladas: solo de quienes NO pidieron hipocalórico
     const ensCount={};
     // Postres: todos
@@ -2485,7 +2564,7 @@ function renderResumen(solMes) {
     });
 
     const totalAlmuerzo=cnt.A+cnt.B+cnt.C+cnt.H+cnt.V+cnt.L;
-    if(!totalAlmuerzo && !cnt.AUS) return '';
+    if(!totalAlmuerzo && !cnt.AUS && !cnt.ESP) return '';
 
     // ── Ensaladas: TODAS las del menú con 0 si no fue pedida ──
     var ensRows='';
@@ -2514,6 +2593,9 @@ function renderResumen(solMes) {
       posRows+='<tr'+zero+'><td class="rtipo">Postres</td><td class="rdesc">'+x.txt+mark+'</td><td class="rnum">'+x.n+'</td></tr>';
     });
 
+    // ── Día especial ──
+    var espRow=cnt.ESP?'<tr class="rhipo"><td class="rtipo"></td><td class="rdesc">📢 Especial'+(dUse.especial?': '+esc(dUse.especial):'')+'</td><td class="rnum">'+cnt.ESP+'</td></tr>':'';
+
     // ── Ausencia ──
     var ausRow=cnt.AUS?'<tr class="raus"><td class="rtipo"></td><td class="rdesc">Ausencia</td><td class="rnum">'+cnt.AUS+'</td></tr>':'';
 
@@ -2523,11 +2605,12 @@ function renderResumen(solMes) {
 
     return '<div class="rc3"><table>'+
       '<thead><tr><th class="rh-tipo">Tipo</th><th class="rh-desc">'+dUse.full+'</th><th class="rh-num">pedido</th></tr></thead>'+
-      '<tbody>'+ensRows+almRows+posRows+ausRow+'</tbody>'+
+      '<tbody>'+ensRows+almRows+posRows+espRow+ausRow+'</tbody>'+
       '<tfoot>'+
       (totalEns?'<tr class="rtot"><td></td><td>Ensalada</td><td>'+totalEns+'</td></tr>':'')+
       (totalAlmuerzo?'<tr class="rtot"><td></td><td>Almuerzo</td><td>'+totalAlmuerzo+'</td></tr>':'')+
       (totalPos?'<tr class="rtot"><td></td><td>Postres</td><td>'+totalPos+'</td></tr>':'')+
+      (cnt.ESP?'<tr class="rtot"><td></td><td>Especial</td><td>'+cnt.ESP+'</td></tr>':'')+
       '</tfoot></table></div>';
   }).join('');
 }
@@ -3027,7 +3110,7 @@ function _diaDatos(dk, solMes){
       if (dia.fondo && dia.tipo && !dUse[dia.tipo]) dUse[dia.tipo]=dia.fondo;
     });
   }
-  var cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0};
+  var cnt={A:0,B:0,C:0,H:0,V:0,L:0,AUS:0,ESP:0};
   var ensCount={}, posCount={};
   var personasDia=[], ausentes=[];
   solMes.forEach(function(p){
@@ -3050,7 +3133,7 @@ function _diaConteoPagina(dk, solMes){
     ? {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'}
     : {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
   var totAlm=cnt.A+cnt.B+cnt.C+cnt.H+cnt.V+cnt.L;
-  if(!totAlm && !cnt.AUS) return '';
+  if(!totAlm && !cnt.AUS && !cnt.ESP) return '';
   var totEns=Object.values(ensCount).reduce(function(a,b){return a+b;},0);
   var totPos=Object.values(posCount).reduce(function(a,b){return a+b;},0);
   var fMen='';
@@ -3066,13 +3149,14 @@ function _diaConteoPagina(dk, solMes){
   var fPos='';
   _fusionarLista(dUse.pos, posCount).forEach(function(x){
     fPos+='<tr'+(x.n===0?' class="z"':'')+'><td class="rt">Postre</td><td>'+x.txt+(x.extra?' (*)':'')+'</td><td class="rn">'+(x.n||'&mdash;')+'</td></tr>';});
+  var espR=cnt.ESP?'<tr class="rh"><td class="rt">Especial</td><td>'+(dUse.especial?dUse.especial:'Dia especial')+'</td><td class="rn">'+cnt.ESP+'</td></tr>':'';
   var ausR=cnt.AUS?'<tr class="z"><td class="rt">Ausencias</td><td>No asiste</td><td class="rn">'+cnt.AUS+'</td></tr>':'';
   return '<div class="pagina">'+
     '<h1>Conteo - '+dUse.full+'</h1>'+
     '<div class="sub">Mes: '+menuMes+' - Generado: '+new Date().toLocaleString('es-CL')+' - TOOLTEK</div>'+
     '<div class="sec">CONTEO DE ALMUERZOS</div>'+
     '<table><thead><tr><th>Tipo</th><th>Descripcion</th><th class="rn">Total</th></tr></thead>'+
-    '<tbody>'+fEns+fMen+fPos+ausR+'</tbody>'+
+    '<tbody>'+fEns+fMen+fPos+espR+ausR+'</tbody>'+
     '<tfoot>'+
     (totEns?'<tr><td></td><td>Total ensaladas</td><td class="rn">'+totEns+'</td></tr>':'')+
     '<tr><td></td><td>Total almuerzos</td><td class="rn">'+totAlm+'</td></tr>'+
@@ -3085,8 +3169,8 @@ function _diaDetallePagina(dk, solMes){
   var X=_diaDatos(dk, solMes), dUse=X.dUse, personasDia=X.personasDia, ausentes=X.ausentes;
   if(!personasDia.length && !ausentes.length) return '';
   var TL_l = esFormatoNuevo(menuMes)
-    ? {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano'}
-    : {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano'};
+    ? {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Alt. adicional',L:'Liviano',ESP:'Especial'}
+    : {A:'Plato A',B:'Plato B',C:'Plato C',H:'Hipocalorico',V:'Vegetariano',L:'Liviano',ESP:'Especial'};
   var rows='';
   personasDia.forEach(function(p,i){
     rows+='<tr'+(i%2===1?' style="background:#f5f8fd"':'')+'>'
