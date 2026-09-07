@@ -471,6 +471,7 @@ footer span{color:var(--azul3)}
     <div id="adminTabs" style="display:none;gap:6px;margin-bottom:14px">
       <button class="atab on" id="tabSol" onclick="adminTab('sol')">📋 Solicitudes recibidas</button>
       <button class="atab" id="tabConteo" onclick="adminTab('conteo')">🔢 Conteo por día</button>
+      <button class="atab" id="tabAuth" onclick="adminTab('auth')">🔒 Autorizaciones<span id="authBadge" style="display:none;margin-left:6px;background:var(--red);color:#fff;border-radius:100px;padding:1px 7px;font-size:.68rem;font-weight:800"></span></button>
     </div>
     <div class="tbl-wrap" id="tblWrap" style="display:none">
       <div class="tbl-hdr">
@@ -486,6 +487,14 @@ footer span{color:var(--azul3)}
     </div>
     <div id="resSection" style="display:none"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px"><div class="pill" style="margin-bottom:0">Conteo por dia</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="abtn ag" onclick="recargarDatos()" style="font-size:.75rem">🔄 Recargar datos</button><button class="abtn ao" onclick="abrirSelectorDia('conteo')" style="font-size:.75rem">🖨 Imprimir un día</button><button class="abtn ap" onclick="imprimirTodos('conteo')" style="font-size:.75rem">🖨 Imprimir todos</button></div></div><div id="resDiag" class="diagbar"></div>
       <div class="res-grid" id="resGrid"></div>
+    </div>
+    <div id="authSection" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="pill" style="margin-bottom:0">Pendientes de autorización</div>
+        <button class="abtn ag" onclick="recargarDatos()" style="font-size:.75rem">🔄 Recargar datos</button>
+      </div>
+      <p style="font-size:.79rem;color:var(--mut);margin-bottom:14px;max-width:640px;line-height:1.6">Estas personas no registraron colación en la última semana completa. No pueden iniciar una nueva solicitud hasta que las autorices.</p>
+      <div class="tbl-wrap" id="authList"></div>
     </div>
   </div>
   <footer>Sistema de Colaciones · <span>TOOLTEK®</span> · Herramientas para construir el futuro</footer>
@@ -519,6 +528,9 @@ let DATES = [];
 let menuMes = '';
 let menuLoaded = false;
 let solicitudes = [];
+// Personas autorizadas por el admin a volver a solicitar tras no pedir una semana.
+// Cada registro: {email, nombre, semanaFin (ISO 'AAAA-MM-DD'), semanaLabel, fecha, por}
+let AUTORIZACIONES = [];
 let choices = {};
 let curIdx = 0;
 let adminFilter = 'all';
@@ -581,6 +593,25 @@ function ordenarDks(dks, mesRef){
 function dkNum(dk){
   var m = String(dk).match(/(\d{1,2})\/(\d{1,2})/);
   return m ? parseInt(m[2],10)*100 + parseInt(m[1],10) : 0;
+}
+
+// DD/MM (sin año) + mes de referencia ("Agosto 2026") → objeto Date real.
+// Usa la misma lógica de "distancia en meses" que ordenarDks para deducir
+// correctamente el año cuando el día pertenece al mes vecino (ej: 31/08
+// dentro de la minuta de Septiembre).
+function fechaCompleta(dk, mesRef){
+  var m = String(dk).match(/(\d{1,2})\/(\d{1,2})/);
+  if (!m) return null;
+  var dd = parseInt(m[1],10), mm = parseInt(m[2],10);
+  var refNum = mesKeyNum(mesRef);
+  if (!refNum) return null;
+  var refY = Math.floor(refNum/100), refM = refNum % 100;
+  var diff = mm - refM;
+  if (diff > 6) diff -= 12;
+  if (diff < -6) diff += 12;
+  var monthAbs = refM + diff, y = refY;
+  if (monthAbs < 1) y = refY - 1; else if (monthAbs > 12) y = refY + 1;
+  return new Date(y, mm-1, dd);
 }
 
 // Días que NO se pueden solicitar: sábado y domingo.
@@ -793,6 +824,7 @@ const TB = {A:'bA',B:'bB',C:'bC',H:'bH',V:'bV',L:'bL',AUS:'bAus',ESP:'bEsp'};
 // ══════════════════════════════════════════════════════
 function loadStor() {
   try { const s = localStorage.getItem('tt_sol'); if(s) solicitudes = JSON.parse(s); } catch(e){}
+  try { const a = localStorage.getItem('tt_autorizaciones'); if(a) AUTORIZACIONES = JSON.parse(a) || []; } catch(e){}
   // Formato nuevo: tt_menus = {menus:{mes:{menu,dates}}, activo}
   try {
     const mm = localStorage.getItem('tt_menus');
@@ -821,6 +853,7 @@ function loadStor() {
   } catch(e){}
 }
 function saveSol() { localStorage.setItem('tt_sol', JSON.stringify(solicitudes)); }
+function saveAutorizaciones() { localStorage.setItem('tt_autorizaciones', JSON.stringify(AUTORIZACIONES)); }
 function saveMenu() { localStorage.setItem('tt_menus', JSON.stringify({menus:MENUS, activo:MES_ACTIVO})); }
 
 // Copia un mes desde MENUS a las variables "activas" (MENU/DATES/menuMes)
@@ -858,6 +891,116 @@ function pedidosCruzados(nombre, email, mesActual, dks){
     });
   });
   return hits;
+}
+
+// ══════════════════════════════════════════════════════
+//  AUTORIZACIÓN POR SEMANA SIN PEDIR
+//  Si una persona ya conocida (con historial de solicitudes) no registró
+//  colación en la última semana completa (ni un solo día no-ausente), queda
+//  bloqueada para iniciar una nueva solicitud hasta que un administrador la
+//  autorice desde el panel (pestaña "Autorizaciones").
+// ══════════════════════════════════════════════════════
+
+// Agrupa TODOS los días cargados (de todos los meses) por semana real,
+// calculando su fecha completa (con año) y excluyendo feriados/fines de semana.
+// Clave compuesta mes+etiqueta para no mezclar semanas de meses distintos que
+// compartan el mismo nombre de hoja (ej: "SEMANA 1").
+function construirSemanasGlobales(){
+  var out = {};
+  Object.keys(MENUS).forEach(function(mes){
+    var entry = MENUS[mes];
+    if (!entry || !entry.menu) return;
+    var dks = (entry.dates && entry.dates.length) ? entry.dates : Object.keys(entry.menu);
+    dks.forEach(function(dk){
+      var d = entry.menu[dk];
+      if (!d || d.feriado) return;
+      var dow = String(d.label||'').split(' ')[0];
+      if (dow === 'Sáb' || dow === 'Dom') return; // no se solicitan
+      var fReal = fechaCompleta(dk, mes);
+      if (!fReal) return;
+      var key = mes + '||' + (d.semana || '—');
+      if (!out[key]) out[key] = { label: (d.semana || 'Semana') + ' — ' + mes, fin: fReal, fechas: [] };
+      if (fReal > out[key].fin) out[key].fin = fReal;
+      out[key].fechas.push({ dk: dk, mes: mes });
+    });
+  });
+  return out;
+}
+
+// Última semana ya finalizada por completo (su último día es anterior a hoy).
+function semanaAnteriorCompleta(){
+  var semanas = construirSemanasGlobales();
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var cand = Object.keys(semanas).map(function(k){ return semanas[k]; })
+    .filter(function(s){ return s.fin < hoy; });
+  if (!cand.length) return null;
+  cand.sort(function(a,b){ return b.fin - a.fin; });
+  return cand[0];
+}
+
+// Personas "conocidas": cualquiera con al menos una solicitud histórica (en
+// cualquier mes). Solo a ellas se les puede exigir autorización.
+function personasConocidas(){
+  var map = {};
+  solicitudes.forEach(function(s){
+    if (!s || !s.email) return;
+    var key = String(s.email).trim().toLowerCase();
+    if (!key) return;
+    if (!map[key]) map[key] = { email: key, nombre: s.nombre || '' };
+    else if (!map[key].nombre && s.nombre) map[key].nombre = s.nombre;
+  });
+  return map;
+}
+
+// De las personas conocidas, ¿cuáles no registraron ni un día (no-ausente)
+// dentro de esa semana? (sin solicitud para esos días, o todos marcados ausente).
+function personasQueNoPidieron(semana){
+  if (!semana) return {};
+  var fechasSet = {};
+  semana.fechas.forEach(function(f){ fechasSet[f.dk + '|' + f.mes] = true; });
+  var conocidas = personasConocidas();
+  var pidieron = {};
+  solicitudes.forEach(function(s){
+    if (!s || !s.email) return;
+    var key = String(s.email).trim().toLowerCase();
+    (s.dias||[]).forEach(function(d){
+      if (!d || d.ausente) return;
+      if (fechasSet[d.fecha + '|' + s.mes]) pidieron[key] = true;
+    });
+  });
+  var faltantes = {};
+  Object.keys(conocidas).forEach(function(key){
+    if (!pidieron[key]) faltantes[key] = conocidas[key];
+  });
+  return faltantes;
+}
+
+// ¿Esta persona tiene una autorización vigente (cubre al menos hasta el fin
+// de la semana en cuestión)? Una autorización más antigua que una semana
+// faltante posterior YA NO sirve: hay que autorizar de nuevo.
+function personaAutorizada(email, semanaFinDate){
+  var key = String(email||'').trim().toLowerCase();
+  var mejor = null;
+  (AUTORIZACIONES||[]).forEach(function(a){
+    if (!a || String(a.email||'').trim().toLowerCase() !== key) return;
+    var f = new Date(a.semanaFin);
+    if (isNaN(f.getTime())) return;
+    if (!mejor || f > mejor) mejor = f;
+  });
+  return !!(mejor && mejor >= semanaFinDate);
+}
+
+// Resultado combinado: la última semana evaluada + quiénes siguen pendientes
+// de autorización (ya detectados como "no pidieron" y sin autorización vigente).
+function calcularBloqueos(){
+  var semana = semanaAnteriorCompleta();
+  if (!semana) return { semana: null, faltantes: {} };
+  var faltantes = personasQueNoPidieron(semana);
+  var pendientes = {};
+  Object.keys(faltantes).forEach(function(key){
+    if (!personaAutorizada(key, semana.fin)) pendientes[key] = faltantes[key];
+  });
+  return { semana: semana, faltantes: pendientes };
 }
 
 function activarMesLocal(mes) {
@@ -1069,6 +1212,18 @@ async function cargarSolicitudesRemotas() {
   }
 }
 
+// Trae la lista de personas autorizadas por el admin a volver a pedir.
+// No es crítica: si falla, se sigue usando la última copia local (o ninguna).
+async function cargarAutorizacionesRemotas() {
+  try {
+    const data = await gasJSONP('obtener_autorizaciones');
+    if (data && data.ok && Array.isArray(data.autorizaciones)) {
+      AUTORIZACIONES = data.autorizaciones;
+      saveAutorizaciones();
+    }
+  } catch(e) { console.warn('Autorizaciones error:', e.message); }
+}
+
 function sheetsViz(sheetName, sheetId) {
   return new Promise((resolve, reject) => {
     const id = sheetId || SHEET_ID_SOL;
@@ -1232,7 +1387,8 @@ function openAdmin() {
   document.getElementById('resSection').style.display = 'none';
   Promise.all([
     cargarSolicitudesRemotas(),
-    cargarMenuRemoto()
+    cargarMenuRemoto(),
+    cargarAutorizacionesRemotas()
   ]).then(function() { renderAdmin(); iniciarPolling(); });
 }
 
@@ -1250,7 +1406,8 @@ function iniciarPolling() {
       detenerPolling(); return;
     }
     setSyncStatus('syncing', '\ud83d\udd04 Actualizando...');
-    gasJSONP('obtener_solicitudes').then(function(data) {
+    Promise.all([gasJSONP('obtener_solicitudes'), cargarAutorizacionesRemotas()]).then(function(res) {
+      var data = res[0];
       if (data.ok && Array.isArray(data.solicitudes)) {
         data.solicitudes.forEach(function(s){ s.mes = normalizarMes(s.mes); });
         var antes = solicitudes.length;
@@ -1272,7 +1429,7 @@ function iniciarPolling() {
 // Fuerza una relectura completa desde la nube (botón 🔄 del conteo)
 function recargarDatos(){
   setSyncStatus('syncing', '🔄 Recargando...');
-  Promise.all([cargarSolicitudesRemotas(), cargarMenuRemoto()])
+  Promise.all([cargarSolicitudesRemotas(), cargarMenuRemoto(), cargarAutorizacionesRemotas()])
     .then(function(){ renderAdmin(); showToast('✅ Datos recargados desde la nube'); });
 }
 
@@ -1290,6 +1447,7 @@ document.addEventListener('visibilitychange', function(){
       saveSol(); marcarOrigen('☁️ Nube (Apps Script)','good'); renderAdmin();
     }
   }).catch(function(){});
+  cargarAutorizacionesRemotas().then(function(){ renderAdmin(); });
 });
 
 function detenerPolling() {
@@ -1314,9 +1472,32 @@ function checkStart() {
   if (warn) warn.style.display = 'none';
 }
 
+function mostrarAvisoDupe(html){
+  var warn = document.getElementById('dupWarn');
+  if (!warn) {
+    warn = document.createElement('div');
+    warn.id = 'dupWarn';
+    warn.style.cssText = 'background:rgba(217,64,64,.07);border:1.5px solid rgba(217,64,64,.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;color:var(--red);line-height:1.6;text-align:left';
+    document.getElementById('btnStart').parentNode.insertBefore(warn, document.getElementById('btnStart'));
+  }
+  warn.style.display = 'block';
+  warn.innerHTML = html;
+}
+
 function startSlides() {
   const nombre = document.getElementById('empNombre').value.trim();
   const email  = document.getElementById('empEmail').value.trim();
+
+  // Bloqueo: si esta persona no registró colación en la última semana
+  // completa y nadie la ha autorizado todavía, no puede iniciar una nueva
+  // solicitud hasta que un administrador la autorice desde el panel.
+  var bloqueo = calcularBloqueos();
+  if (bloqueo.semana && bloqueo.faltantes[email.toLowerCase()]) {
+    mostrarAvisoDupe('🔒 <strong>' + nombre + '</strong> no registró colación durante <strong>' + bloqueo.semana.label +
+      '</strong>.<br>Para volver a solicitar, un administrador debe autorizarte primero desde el panel de administración. Contacta a administración.');
+    return;
+  }
+
   const yaExiste = solicitudes.some(s =>
     s.mes === menuMes &&
     (s.email.toLowerCase() === email.toLowerCase() ||
@@ -2186,6 +2367,7 @@ function renderAdmin() {
   renderStats(solMes);
   renderTable(solMes);
   renderResumen(solMes);
+  renderAutorizaciones();
   aplicarTabAdmin(solMes.length > 0);
 }
 
@@ -2194,14 +2376,16 @@ function aplicarTabAdmin(hayDatos){
   const tabs=document.getElementById('adminTabs');
   const tw=document.getElementById('tblWrap');
   const rs=document.getElementById('resSection');
+  const as=document.getElementById('authSection');
   if(!hayDatos){ if(tabs)tabs.style.display='none'; return; }
   if(tabs)tabs.style.display='flex';
-  const sol = _adminTab==='sol';
-  if(tw) tw.style.display = sol?'block':'none';
-  if(rs) rs.style.display = sol?'none':'block';
-  const ts=document.getElementById('tabSol'), tc=document.getElementById('tabConteo');
-  if(ts) ts.className='atab'+(sol?' on':'');
-  if(tc) tc.className='atab'+(sol?'':' on');
+  if(tw) tw.style.display = _adminTab==='sol' ? 'block':'none';
+  if(rs) rs.style.display = _adminTab==='conteo' ? 'block':'none';
+  if(as) as.style.display = _adminTab==='auth' ? 'block':'none';
+  const ts=document.getElementById('tabSol'), tc=document.getElementById('tabConteo'), ta=document.getElementById('tabAuth');
+  if(ts) ts.className='atab'+(_adminTab==='sol'?' on':'');
+  if(tc) tc.className='atab'+(_adminTab==='conteo'?' on':'');
+  if(ta) ta.className='atab'+(_adminTab==='auth'?' on':'');
 }
 function adminTab(w){
   _adminTab=w;
@@ -2487,6 +2671,60 @@ function renderTable(solMes) {
       wrap.scrollTop  = _prevScroll.top;
     }
   }
+}
+
+// ══════════════════════════════════════════════════════
+//  PESTAÑA "AUTORIZACIONES"
+// ══════════════════════════════════════════════════════
+function renderAutorizaciones(){
+  var badge = document.getElementById('authBadge');
+  var wrap  = document.getElementById('authList');
+  if (!wrap) return;
+  var res = calcularBloqueos();
+  var keys = Object.keys(res.faltantes);
+  if (badge) {
+    if (keys.length) { badge.textContent = ' ' + keys.length; badge.style.display = 'inline-flex'; }
+    else { badge.style.display = 'none'; }
+  }
+  if (!res.semana) {
+    wrap.innerHTML = '<div class="empty"><div class="bi">📆</div><p>Todavía no hay una semana completa para evaluar.</p></div>';
+    return;
+  }
+  if (!keys.length) {
+    wrap.innerHTML = '<div class="empty"><div class="bi">✅</div><p>Nadie pendiente de autorización.<br><span style="font-size:.74rem">Última semana evaluada: <strong>' + esc(res.semana.label) + '</strong></span></p></div>';
+    return;
+  }
+  var filas = keys.map(function(key){
+    var p = res.faltantes[key];
+    return '<tr><td>' + (p.nombre || '(sin nombre)') + '</td><td>' + p.email + '</td><td>' + esc(res.semana.label) + '</td>' +
+      '<td><button class="abtn as" onclick="autorizarPersona(\'' + esc(p.email) + '\',\'' + esc(p.nombre||'') + '\')">✅ Autorizar</button></td></tr>';
+  }).join('');
+  wrap.innerHTML = '<table><thead><tr><th>Nombre</th><th>Correo</th><th>Semana sin pedir</th><th></th></tr></thead><tbody>' + filas + '</tbody></table>';
+}
+
+// Autoriza a una persona a volver a solicitar. Se guarda de inmediato en
+// este dispositivo (reflejo instantáneo en el panel) y se envía al servidor
+// para que quede sincronizado entre todos los administradores.
+async function autorizarPersona(email, nombre){
+  var res = calcularBloqueos();
+  if (!res.semana) return;
+  var key = String(email||'').trim().toLowerCase();
+  var reg = {
+    email: key,
+    nombre: nombre || '',
+    semanaFin: res.semana.fin.toISOString().slice(0,10),
+    semanaLabel: res.semana.label,
+    fecha: new Date().toISOString(),
+    por: 'Admin'
+  };
+  AUTORIZACIONES = (AUTORIZACIONES||[]).filter(function(a){ return String(a.email||'').trim().toLowerCase() !== key; });
+  AUTORIZACIONES.push(reg);
+  saveAutorizaciones();
+  renderAutorizaciones();
+  showToast('✅ ' + (nombre || email) + ' autorizado para volver a pedir');
+  try {
+    await fetch(WEBHOOK_URL, {method:'POST', mode:'no-cors', body: JSON.stringify({action:'autorizar_persona', autorizacion: reg})});
+  } catch(e) {}
 }
 
 // ── Barra de diagnóstico: permite comparar de un vistazo lo que muestra
@@ -3248,6 +3486,7 @@ gasJSONP('obtener_solicitudes').then(function(data){
     saveSol();
   }
 }).catch(function(){});
+cargarAutorizacionesRemotas();
 </script>
 </body>
 </html>
